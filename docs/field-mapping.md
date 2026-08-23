@@ -1,31 +1,42 @@
 # CND-MNE field mapping
 
-This is the initial mapping hypothesis. Each row must be confirmed against the
-CND specification, representative datasets, and MNE conventions before the API
-is considered stable.
+This table records the implemented mapping and the scientific decisions still
+requiring confirmation.
 
-| CND concept | Proposed MNE representation | Transformation | Risk |
+| CND concept | Canonical representation | MNE representation | Policy / risk |
 | --- | --- | --- | --- |
-| `neural.data` | One `RawArray` per trial, or concatenated `RawArray` | Transpose from time x channels to channels x time | Trial boundaries must remain explicit |
-| `neural.fs` | `Info["sfreq"]` | Direct mapping | Neural and stimulus rates must agree |
-| `neural.dataType` | MNE channel types | Normalize CND modality names | Unknown modalities need a fallback |
-| `neural.deviceName` | Device metadata and provenance | Normalize known devices | No exact universal field mapping |
-| `neural.chanlocs` | `DigMontage` | Convert EEGLAB coordinates and coordinate frame | Naive conversion can move sensors |
-| `neural.extChan` | Typed MNE channels | Map EOG, mastoid, and other external channels | Type names may be ambiguous |
-| `neural.origTrialPosition` | Trial metadata | Preserve original presentation order | Lost if only a bare `Raw` is retained |
-| `stim.data` | Companion stimulus feature collection | Preserve feature-set and trial axes | No natural home in a bare `Raw` |
-| `stim.names` | Stimulus feature metadata | Direct mapping | None when the companion model is retained |
-| `stim.stimIdxs` | Trial metadata | Direct mapping | Must remain aligned after reordering |
-| `stim.condIdxs` and `condNames` | Trial metadata and annotations | Encode condition identity | Avoid lossy string-only encoding |
-| `cndVersion` | Canonical model metadata | Direct mapping | Required for version-aware parsing |
-| Additional fields | `extra_fields` | Preserve recursively | Must remain MATLAB-serializable |
+| `eeg.data` | Tuple of `time x channels` arrays | One `RawArray` per trial, transposed to `channels x time` | No implicit concatenation or padding |
+| `eeg.fs` | `CNDNeural.sfreq` | `Info["sfreq"]` | Direct mapping |
+| Stored EEG values | Original numerical values plus optional `data_unit` | Floating-point volts | Unit must be declared or explicitly supplied |
+| `eeg.dataType` | `CNDNeural.data_type` | MNE channel type | MVP supports EEG only; opaque legacy strings fall back to the variable name |
+| `eeg.deviceName` | `CNDNeural.device_name` | Provenance in `Info["description"]` | MNE has no universal device-name field |
+| `eeg.chanlocs` | Tuple of field-preserving dictionaries | Optional `DigMontage` | EEGLAB axis mapping and scale to metres are opt-in |
+| `eeg.extChan` | Separate external trial arrays and description | Not converted in MVP | Channel type and names can be ambiguous |
+| `eeg.origTrialPosition` | One-based stored values | Retained in companion model | Never collapse into bare `Raw` |
+| `eeg.paddingStartSample` | Preserved verbatim | Not yet converted to annotations | Needed for precise stimulus onset alignment |
+| `stim.data` | `feature -> trial -> ndarray` | Companion `CNDStimulus` | Never force arbitrary features into physiological channels |
+| `stim.fs` | Independent stimulus sampling rate | Companion time base | It need not equal neural `sfreq` |
+| `stim.names` | Feature names | Companion metadata | Direct mapping |
+| `stim.stimIdxs` | Stored values or `None` | Companion trial metadata | Missing legacy values warn; ordinal one-based values are available as a derived view |
+| `stim.condIdxs` | Numeric or string values | Companion trial metadata | Legacy AAD uses strings rather than numeric indices |
+| `stim.condNames` | Optional condition labels | Companion metadata | Some datasets encode labels directly in `condIdxs` |
+| `cndVersion` | Optional version metadata | Companion provenance | Public legacy datasets often omit it |
+| Additional fields | `extra_fields` | Companion metadata | Preserved when MATLAB-serializable |
 
-## Required invariants
+## Invariants
 
 - Neural trial `i` remains paired with stimulus trial `i`.
-- Neural and stimulus sample `i` represent the same time point.
-- Sampling frequencies match unless an explicit conversion policy is applied.
 - Trial order and original presentation order remain distinguishable.
-- Unit and coordinate transformations are explicit and reversible where
-  possible.
+- Neural and stimulus clocks remain separate.
+- Alignment is compared using duration in seconds, never raw sample count.
+- No unit conversion occurs without a declared input unit.
+- No coordinate conversion occurs without an explicit transform and scale.
 - Unsupported information is reported rather than silently discarded.
+
+## One-based indices
+
+The canonical model preserves CND values exactly as stored, including MATLAB's
+one-based `stimIdxs` and `origTrialPosition`. This improves round-trip fidelity.
+Python consumers can use `CNDStimulus.resolved_stimulus_indices`; when a legacy
+file omits `stimIdxs`, it provides derived ordinal values `1..n` without
+pretending that the source file contained them.

@@ -1,0 +1,543 @@
+"""Read and write Continuous-event Neural Data MATLAB files."""
+
+from __future__ import annotations
+
+import os
+import tempfile
+from collections.abc import Iterable, Mapping, Sequence
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+from scipy.io import loadmat, savemat
+
+from .exceptions import CNDReadError
+from .model import CNDNeural, CNDPaths, CNDRecording, CNDStimulus
+from .validation import validate_cnd
+
+_MATLAB_METADATA = {"__header__", "__version__", "__globals__"}
+_NEURAL_RESERVED = {
+    "data",
+    "dataType",
+    "deviceName",
+    "origTrialPosition",
+    "chanlocs",
+    "extChan",
+    "reRef",
+    "paddingStartSample",
+    "fs",
+    "cndVersion",
+    "dataUnit",
+    "unit",
+    "units",
+}
+_STIMULUS_RESERVED = {
+    "data",
+    "names",
+    "stimIdxs",
+    "condIdxs",
+    "condNames",
+    "fs",
+    "cndVersion",
+}
+
+
+def read_cnd(
+    path: str | Path,
+    *,
+    stimulus_path: str | Path | None = None,
+    subject: str | int | None = None,
+    load_stimulus: bool = True,
+) -> CNDRecording:
+    """Read a CND directory or individual ``.mat`` file.
+
+    When ``path`` is a subject file, a sibling ``dataStim<subject>.mat`` or
+    ``dataStim.mat`` is inferred if ``load_stimulus`` is true. When ``path`` is
+    a directory containing multiple subject files, ``subject`` is required.
+    """
+    source = Path(path).expanduser()
+    if source.is_dir():
+        data_directory = source / "dataCND" if (source / "dataCND").is_dir() else source
+        neural_path = _resolve_subject_file(data_directory, subject)
+        inferred_stimulus = _resolve_stimulus_file(
+            data_directory, subject, required=False
+        )
+        neural = read_cnd_neural(neural_path) if neural_path is not None else None
+        stimulus = (
+            read_cnd_stimulus(stimulus_path or inferred_stimulus)
+            if load_stimulus and (stimulus_path or inferred_stimulus)
+            else None
+        )
+        recording = CNDRecording(neural, stimulus)
+        validate_cnd(recording).raise_for_errors()
+        return recording
+
+    if not source.exists():
+        raise FileNotFoundError(source)
+
+    variables = _load_mat(source)
+    neural_key = _find_neural_key(variables)
+    if neural_key is not None:
+        neural = _parse_neural(variables[neural_key], neural_key, source)
+        resolved_stimulus: Path | None = None
+        if stimulus_path is not None:
+            resolved_stimulus = Path(stimulus_path).expanduser()
+        elif load_stimulus:
+            resolved_stimulus = _resolve_stimulus_file(
+                source.parent, _subject_from_filename(source), required=False
+            )
+        stimulus = (
+            read_cnd_stimulus(resolved_stimulus)
+            if resolved_stimulus is not None
+            else None
+        )
+        recording = CNDRecording(neural, stimulus)
+    elif "stim" in variables:
+        recording = CNDRecording(stimulus=_parse_stimulus(variables["stim"], source))
+    else:
+        raise CNDReadError(f"{source} contains neither neural nor 'stim' data")
+
+    validate_cnd(recording).raise_for_errors()
+    return recording
+
+
+def read_cnd_neural(path: str | Path) -> CNDNeural:
+    """Read one subject-specific CND neural file."""
+    source = Path(path).expanduser()
+    variables = _load_mat(source)
+    key = _find_neural_key(variables)
+    if key is None:
+        raise CNDReadError(f"{source} does not contain a recognizable neural structure")
+    return _parse_neural(variables[key], key, source)
+
+
+def read_cnd_stimulus(path: str | Path) -> CNDStimulus:
+    """Read one CND stimulus file."""
+    source = Path(path).expanduser()
+    variables = _load_mat(source)
+    if "stim" not in variables:
+        raise CNDReadError(f"{source} does not contain a 'stim' structure")
+    return _parse_stimulus(variables["stim"], source)
+
+
+def write_cnd(
+    recording: CNDRecording,
+    destination: str | Path,
+    *,
+    subject: str | int = 1,
+    overwrite: bool = False,
+    compression: bool = True,
+) -> CNDPaths:
+    """Write a canonical recording as a CND directory.
+
+    Writes ``dataSub<subject>.mat`` and/or ``dataStim.mat`` atomically. Existing
+    files are protected unless ``overwrite=True``.
+    """
+    report = validate_cnd(recording)
+    report.raise_for_errors()
+    output_dir = Path(destination).expanduser()
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    neural_path: Path | None = None
+    stimulus_path: Path | None = None
+    if recording.neural is not None:
+        neural_path = output_dir / f"dataSub{subject}.mat"
+        payload = {recording.neural.variable_name: _neural_to_mat(recording.neural)}
+        _atomic_savemat(neural_path, payload, overwrite, compression)
+    if recording.stimulus is not None:
+        stimulus_path = output_dir / "dataStim.mat"
+        _atomic_savemat(
+            stimulus_path,
+            {"stim": _stimulus_to_mat(recording.stimulus)},
+            overwrite,
+            compression,
+        )
+    return CNDPaths(neural_path, stimulus_path)
+
+
+def _load_mat(path: Path) -> dict[str, Any]:
+    try:
+        data = loadmat(path, simplify_cells=True)
+    except NotImplementedError as error:
+        raise CNDReadError(
+            f"{path} is probably MATLAB v7.3/HDF5; that variant is not supported yet"
+        ) from error
+    except (OSError, ValueError, TypeError) as error:
+        raise CNDReadError(f"Could not read MATLAB file {path}: {error}") from error
+    return {key: value for key, value in data.items() if key not in _MATLAB_METADATA}
+
+
+def _find_neural_key(variables: Mapping[str, Any]) -> str | None:
+    preferred = ("eeg", "meg", "nirs", "fnirs", "ieeg", "neural")
+    for key in preferred:
+        value = variables.get(key)
+        if isinstance(value, Mapping) and "data" in value and "fs" in value:
+            return key
+    for key, value in variables.items():
+        if isinstance(value, Mapping) and {"data", "fs", "dataType"} <= set(value):
+            return key
+    return None
+
+
+def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
+    if not isinstance(value, Mapping):
+        raise CNDReadError(f"{source}:{variable_name} is not a MATLAB structure")
+    try:
+        trials = _as_trial_tuple(value["data"])
+        sfreq = float(_scalar(value["fs"]))
+    except KeyError as error:
+        raise CNDReadError(
+            f"{source}:{variable_name} is missing {error.args[0]!r}"
+        ) from error
+
+    channel_locations = _parse_channel_locations(value.get("chanlocs"))
+    external_trials: tuple[np.ndarray, ...] | None = None
+    external_description: str | None = None
+    external = value.get("extChan")
+    if isinstance(external, Mapping) and "data" in external:
+        external_trials = _as_trial_tuple(external["data"])
+        if external.get("description") is not None:
+            external_description = str(_scalar(external["description"]))
+
+    original = value.get("origTrialPosition")
+    original_positions = (
+        tuple(int(item) for item in np.atleast_1d(original).ravel())
+        if original is not None
+        else None
+    )
+    data_unit = next(
+        (
+            str(_scalar(value[key]))
+            for key in ("dataUnit", "unit", "units")
+            if key in value and value[key] is not None
+        ),
+        None,
+    )
+    extras = {key: item for key, item in value.items() if key not in _NEURAL_RESERVED}
+    return CNDNeural(
+        trials=trials,
+        sfreq=sfreq,
+        data_type=_string_or_default(value.get("dataType"), variable_name.upper()),
+        device_name=_optional_string(value.get("deviceName")),
+        original_trial_positions=original_positions,
+        channel_locations=channel_locations,
+        external_trials=external_trials,
+        external_description=external_description,
+        rereference=value.get("reRef"),
+        padding_start_sample=value.get("paddingStartSample"),
+        cnd_version=_optional_string(value.get("cndVersion")),
+        data_unit=data_unit,
+        extra_fields=extras,
+        variable_name=variable_name,
+        source_path=source,
+    )
+
+
+def _parse_stimulus(value: Any, source: Path) -> CNDStimulus:
+    if not isinstance(value, Mapping):
+        raise CNDReadError(f"{source}:stim is not a MATLAB structure")
+    required = {"data", "names", "fs"}
+    missing = required - set(value)
+    if missing:
+        raise CNDReadError(f"{source}:stim is missing {sorted(missing)!r}")
+    names = tuple(str(item) for item in np.atleast_1d(value["names"]).ravel())
+    features = _as_feature_tuple(value["data"], len(names))
+    stimulus_indices_value = value.get("stimIdxs")
+    stimulus_indices = (
+        tuple(
+            _python_scalar(item)
+            for item in np.atleast_1d(stimulus_indices_value).ravel()
+        )
+        if stimulus_indices_value is not None
+        else None
+    )
+    condition_indices = value.get("condIdxs")
+    condition_names = value.get("condNames")
+    extras = {key: item for key, item in value.items() if key not in _STIMULUS_RESERVED}
+    return CNDStimulus(
+        names=names,
+        features=features,
+        sfreq=float(_scalar(value["fs"])),
+        stimulus_indices=stimulus_indices,
+        condition_indices=(
+            tuple(
+                _python_scalar(item)
+                for item in np.atleast_1d(condition_indices).ravel()
+            )
+            if condition_indices is not None
+            else None
+        ),
+        condition_names=(
+            tuple(str(item) for item in np.atleast_1d(condition_names).ravel())
+            if condition_names is not None
+            else None
+        ),
+        cnd_version=_optional_string(value.get("cndVersion")),
+        extra_fields=extras,
+        source_path=source,
+    )
+
+
+def _as_trial_tuple(value: Any) -> tuple[np.ndarray, ...]:
+    if isinstance(value, (list, tuple)):
+        return tuple(np.asarray(item) for item in value)
+    array = np.asarray(value)
+    if array.dtype == object:
+        return tuple(np.asarray(item) for item in array.ravel())
+    if array.ndim <= 2:
+        return (array,)
+    if array.ndim == 3:
+        return tuple(np.asarray(array[index]) for index in range(array.shape[0]))
+    raise CNDReadError(f"Cannot interpret neural data with shape {array.shape}")
+
+
+def _as_feature_tuple(
+    value: Any, n_features: int
+) -> tuple[tuple[np.ndarray, ...], ...]:
+    if n_features == 0:
+        return ()
+    if isinstance(value, (list, tuple)):
+        if n_features == 1 and (not value or not isinstance(value[0], (list, tuple))):
+            return (tuple(np.asarray(item) for item in value),)
+        if len(value) == n_features:
+            return tuple(_as_trial_tuple(feature) for feature in value)
+
+    array = np.asarray(value)
+    if array.dtype == object:
+        if array.ndim >= 2 and array.shape[0] == n_features:
+            return tuple(
+                tuple(
+                    np.asarray(array[index, trial]) for trial in range(array.shape[1])
+                )
+                for index in range(n_features)
+            )
+        if n_features == 1:
+            return (tuple(np.asarray(item) for item in array.ravel()),)
+        if array.ndim == 1 and array.shape[0] == n_features:
+            return tuple(_as_trial_tuple(item) for item in array)
+    if n_features == 1:
+        return ((array,),)
+    raise CNDReadError(
+        f"Cannot interpret stimulus data shape {array.shape} for {n_features} features"
+    )
+
+
+def _parse_channel_locations(value: Any) -> tuple[dict[str, Any], ...] | None:
+    if value is None:
+        return None
+    if isinstance(value, Mapping):
+        lengths = [
+            np.atleast_1d(item).size
+            for item in value.values()
+            if np.atleast_1d(item).size > 1
+        ]
+        if not lengths:
+            return (dict(value),)
+        count = max(lengths)
+        locations: list[dict[str, Any]] = []
+        for index in range(count):
+            location: dict[str, Any] = {}
+            for key, item in value.items():
+                values = np.atleast_1d(item).ravel()
+                location[key] = values[index] if values.size > 1 else values[0]
+            locations.append(location)
+        return tuple(locations)
+    if isinstance(value, (list, tuple)):
+        if all(isinstance(item, Mapping) for item in value):
+            return tuple(dict(item) for item in value)
+    array = np.asarray(value, dtype=object)
+    if array.dtype.names:
+        return tuple(
+            {name: item[name] for name in array.dtype.names} for item in array.ravel()
+        )
+    if all(isinstance(item, Mapping) for item in array.ravel()):
+        return tuple(dict(item) for item in array.ravel())
+    raise CNDReadError("Could not interpret chanlocs structure")
+
+
+def _neural_to_mat(neural: CNDNeural) -> dict[str, Any]:
+    result = dict(neural.extra_fields)
+    result.update(
+        {
+            "dataType": neural.data_type,
+            "fs": neural.sfreq,
+            "data": _cell_row(neural.trials),
+        }
+    )
+    if neural.device_name is not None:
+        result["deviceName"] = neural.device_name
+    if neural.original_trial_positions is not None:
+        result["origTrialPosition"] = np.asarray(neural.original_trial_positions)
+    if neural.channel_locations is not None:
+        result["chanlocs"] = _struct_array(neural.channel_locations)
+    if neural.external_trials is not None:
+        result["extChan"] = {
+            "data": _cell_row(neural.external_trials),
+            "description": neural.external_description or "External channels",
+        }
+    if neural.rereference is not None:
+        result["reRef"] = neural.rereference
+    if neural.padding_start_sample is not None:
+        result["paddingStartSample"] = neural.padding_start_sample
+    if neural.cnd_version is not None:
+        result["cndVersion"] = neural.cnd_version
+    if neural.data_unit is not None:
+        result["dataUnit"] = neural.data_unit
+    return _without_none(result)
+
+
+def _stimulus_to_mat(stimulus: CNDStimulus) -> dict[str, Any]:
+    result = dict(stimulus.extra_fields)
+    data = np.empty((stimulus.n_features, stimulus.n_trials), dtype=object)
+    for feature_index, trials in enumerate(stimulus.features):
+        for trial_index, trial in enumerate(trials):
+            data[feature_index, trial_index] = np.asarray(trial)
+    result.update(
+        {
+            "names": _cell_row(stimulus.names),
+            "data": data,
+            "fs": stimulus.sfreq,
+        }
+    )
+    if stimulus.stimulus_indices is not None:
+        result["stimIdxs"] = _sequence_to_mat(stimulus.stimulus_indices)
+    if stimulus.condition_indices is not None:
+        result["condIdxs"] = _sequence_to_mat(stimulus.condition_indices)
+    if stimulus.condition_names is not None:
+        result["condNames"] = _cell_row(stimulus.condition_names)
+    if stimulus.cnd_version is not None:
+        result["cndVersion"] = stimulus.cnd_version
+    return _without_none(result)
+
+
+def _cell_row(values: Sequence[Any]) -> np.ndarray:
+    cell = np.empty((1, len(values)), dtype=object)
+    for index, value in enumerate(values):
+        cell[0, index] = value
+    return cell
+
+
+def _sequence_to_mat(values: Sequence[Any]) -> np.ndarray:
+    if any(isinstance(value, (str, np.str_)) for value in values):
+        return _cell_row(values)
+    return np.asarray(values)
+
+
+def _struct_array(records: Sequence[Mapping[str, Any]]) -> np.ndarray:
+    fields = sorted({key for record in records for key in record})
+    dtype = [(field, object) for field in fields]
+    output = np.empty((1, len(records)), dtype=dtype)
+    for index, record in enumerate(records):
+        for field in fields:
+            output[field][0, index] = _matlab_value(record.get(field))
+    return output
+
+
+def _matlab_value(value: Any) -> Any:
+    if value is None:
+        return np.empty((0, 0))
+    return value
+
+
+def _without_none(mapping: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        key: _matlab_value(value) for key, value in mapping.items() if value is not None
+    }
+
+
+def _atomic_savemat(
+    path: Path,
+    payload: dict[str, Any],
+    overwrite: bool,
+    compression: bool,
+) -> None:
+    if path.exists() and not overwrite:
+        raise FileExistsError(f"Refusing to overwrite {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle = tempfile.NamedTemporaryFile(
+        prefix=f".{path.stem}.", suffix=".mat", dir=path.parent, delete=False
+    )
+    temporary = Path(handle.name)
+    handle.close()
+    try:
+        savemat(
+            temporary,
+            payload,
+            appendmat=False,
+            do_compression=compression,
+            long_field_names=True,
+        )
+        os.replace(temporary, path)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def _resolve_subject_file(directory: Path, subject: str | int | None) -> Path | None:
+    if subject is not None:
+        candidate = directory / f"dataSub{subject}.mat"
+        if not candidate.exists():
+            raise FileNotFoundError(candidate)
+        return candidate
+    candidates = sorted(directory.glob("dataSub*.mat"))
+    if not candidates:
+        return None
+    if len(candidates) > 1:
+        raise CNDReadError(
+            f"{directory} contains {len(candidates)} subject files; pass subject=..."
+        )
+    return candidates[0]
+
+
+def _resolve_stimulus_file(
+    directory: Path,
+    subject: str | int | None,
+    *,
+    required: bool,
+) -> Path | None:
+    candidates: Iterable[Path]
+    search_directories = [directory]
+    sibling_stimulus = directory.parent / "stimCND"
+    if sibling_stimulus.is_dir():
+        search_directories.append(sibling_stimulus)
+    candidate_names = (
+        (f"dataStim{subject}.mat", "dataStim.mat")
+        if subject is not None
+        else ("dataStim.mat",)
+    )
+    candidates = (
+        search_directory / name
+        for search_directory in search_directories
+        for name in candidate_names
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    if required:
+        raise FileNotFoundError(directory / "dataStim.mat")
+    return None
+
+
+def _subject_from_filename(path: Path) -> str | None:
+    stem = path.stem
+    return stem.removeprefix("dataSub") if stem.startswith("dataSub") else None
+
+
+def _scalar(value: Any) -> Any:
+    array = np.asarray(value)
+    return array.item() if array.size == 1 else value
+
+
+def _optional_string(value: Any) -> str | None:
+    return None if value is None else str(_scalar(value))
+
+
+def _string_or_default(value: Any, default: str) -> str:
+    scalar = _scalar(value) if value is not None else None
+    if isinstance(scalar, (str, np.str_)):
+        return str(scalar)
+    return default
+
+
+def _python_scalar(value: Any) -> Any:
+    return value.item() if isinstance(value, np.generic) else value

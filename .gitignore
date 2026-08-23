@@ -11,6 +11,10 @@ __pycache__/
 build/
 dist/
 data/
+/LalorNatSpeech/
+/AliceSpeech/
+/AAD_KULeuven/
+/musicImagery/
 *.fif
 *.mat
 *.zip

@@ -1,6 +1,6 @@
 # ADR 0001: Use a canonical CND model between file I/O and MNE
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-22
 
 ## Context
@@ -27,6 +27,10 @@ The model should contain:
 - condition and trial-order metadata;
 - CND version information; and
 - unrecognized additional fields needed for round-trip preservation.
+
+The first implementation uses `CNDRecording`, `CNDNeural`, and `CNDStimulus`
+dataclasses. Numerical arrays retain CND's native orientation and values until
+an adapter performs an explicitly parameterized transformation.
 
 ## Consequences
 
