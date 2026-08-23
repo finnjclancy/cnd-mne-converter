@@ -112,6 +112,7 @@ these must be retained or supplied explicitly for export.
 ## Repository documentation
 
 - [Observed dataset compatibility](docs/dataset-compatibility.md)
+- [Public test-dataset release and checksums](docs/dataset-assets.md)
 - [Review of existing Python CND importers](docs/existing-importers.md)
 - [Implementation roadmap](docs/implementation-roadmap.md)
 - [Field mapping](docs/field-mapping.md)
@@ -130,6 +131,6 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
-Large public datasets are intentionally excluded from Git. Unit tests generate
-small MATLAB fixtures; full datasets are used for local integration tests and a
-documented compatibility matrix.
+Large public datasets are intentionally excluded from Git history. They are
+available as checksum-verified GitHub release assets for local integration
+tests, while unit tests generate small MATLAB fixtures.
