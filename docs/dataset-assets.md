@@ -18,6 +18,16 @@ the source repository remain small.
 The complete Lalor ZIP is 3,518,927,722 bytes and has SHA-256
 `4626367ba97f35b5a9e9e15ff19cbe57384a264d56bd076e81b322cbcf725bff`.
 
+## Additional authoritative archives tested
+
+These larger archives were downloaded from CNSP and checksum-verified locally.
+They are referenced directly rather than duplicated in the GitHub release.
+
+| Dataset | Official archive | Size (bytes) | SHA-256 |
+| --- | --- | ---: | --- |
+| Lalor Reversed Speech | `datasetCND_LalorNatSpeechReverse.zip` | 2,026,330,837 | `c0514445a959249a8869648909d3b513b41415d8d70a18dc5910cfb569ea6c56` |
+| SparrKULee2 | `SparrKULee2.zip` | 5,728,958,354 | `a9baec9634e610c221da509078e034a7f6fe91d6903fb7f253c11eae8a278519` |
+
 ## Reconstruct Lalor Natural Speech
 
 On macOS or Linux:
@@ -55,8 +65,9 @@ Lalor archive is split byte-for-byte into two release assets:
 - [AliceSpeech](https://www.data.cnspworkshop.net/data/AliceSpeech.zip)
 - [AAD KULeuven](https://www.data.cnspworkshop.net/data/AAD_KULeuven.zip)
 - [Music Imagery](https://www.data.cnspworkshop.net/data/datasetCND_musicImagery.zip)
+- [Lalor Reversed Speech](https://www.data.cnspworkshop.net/data/datasetCND_LalorNatSpeechReverse.zip)
+- [SparrKULee2](https://www.data.cnspworkshop.net/data/SparrKULee2.zip)
 
 The original authors' licences, citation requirements, and dataset terms still
 apply. These mirrors are for reproducible converter development and testing;
 the official CNSP copies remain the authoritative sources.
-

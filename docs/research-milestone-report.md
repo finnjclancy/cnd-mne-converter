@@ -4,7 +4,7 @@
 
 The project now demonstrates bidirectional, metadata-aware interoperability
 between legacy CND MATLAB datasets and MNE-Python. The implementation has been
-tested against four public CND archives, not only synthetic arrays.
+tested against six public CND archives, not only synthetic arrays.
 
 The current milestone is suitable for technical review and discussion with the
 CND and MNE maintainers. It is not yet suitable for unqualified scientific use
@@ -36,7 +36,7 @@ homes in a bare MNE `Raw` object.
 
 ## Engineering delivered
 
-- MATLAB v5 CND neural and stimulus reader.
+- MATLAB v5 and read-only MATLAB v7.3/HDF5 CND neural and stimulus reader.
 - Atomic writer with preflight protection against partial multi-file output.
 - Numeric `cndVersion` preservation.
 - Restoration of one-channel matrices squeezed by MATLAB/SciPy loading.
@@ -55,7 +55,7 @@ homes in a bare MNE `Raw` object.
 
 ## Experimental method and results
 
-The four downloaded datasets were read one subject at a time. For each subject,
+The six downloaded datasets were read one subject at a time. For each subject,
 the verifier constructed MNE neural objects, compared every MNE sample with its
 CND source value, constructed MNE views of all stimulus features, computed a
 Welch PSD through MNE, exported through the source CND template, and compared
@@ -63,17 +63,18 @@ the returned neural values and metadata.
 
 | Measure | Result |
 | --- | ---: |
-| Public datasets | 4 |
-| Subject files | 76 |
-| Neural trials | 2,596 |
-| Neural time samples | 21,255,279 |
-| Scalar neural values | 1,912,663,648 |
+| Public datasets | 6 |
+| Non-empty subject files | 142 |
+| Empty archive placeholders skipped and reported | 1 |
+| Neural trials | 3,008 |
+| Neural time samples | 38,380,840 |
+| Scalar neural values | 3,320,880,928 |
 | Failed subjects | 0 |
 | Non-finite MNE PSD checks | 0 |
 | Maximum CND-to-MNE numerical error | 0 |
 | Maximum MNE-to-CND numerical error | 0 |
-| Automated tests | 35 passing |
-| Statement coverage | 83.02% |
+| Automated tests | 82 passing |
+| Statement coverage | 98.13% |
 
 The detailed evidence is stored under [results](results/README.md). The current
 automated suite contains synthetic, malformed-input, committed-MATLAB-fixture,
@@ -81,7 +82,7 @@ MNE FIF, CLI, validation, and round-trip tests.
 
 ## What the result proves
 
-- The implemented parser understands all observed layouts in the four public
+- The implemented parser understands all observed layouts in the six public
   archives.
 - Trial arrays are transposed into MNE correctly.
 - The converter retains variable trial lengths without padding.
@@ -95,8 +96,9 @@ MNE FIF, CLI, validation, and round-trip tests.
   transform for software verification only.
 - The public electrode coordinates are in metres or a confirmed head frame.
 - Large duration discrepancies in Lalor are scientifically intended.
-- Every CND dataset in existence follows one of the four observed layouts.
-- MATLAB v7.3/HDF5, MEG, fNIRS, or TRF result files are supported yet.
+- Every CND dataset in existence follows one of the six observed layouts.
+- MATLAB v7.3/HDF5 writing, MEG, fNIRS, and TRF result files are not supported
+  yet.
 
 ## Questions for the supervisor / maintainers
 

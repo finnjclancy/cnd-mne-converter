@@ -2,8 +2,13 @@ from __future__ import annotations
 
 import json
 
+import mne
+import numpy as np
+import pytest
+
 from cnd_mne import verify_dataset, write_cnd
 from cnd_mne.cli import main
+from cnd_mne.verification import _mne_psd_is_finite
 
 
 def test_verify_dataset_exercises_mne_and_round_trip(
@@ -46,3 +51,60 @@ def test_verify_cli_writes_json_report(sample_recording, tmp_path, capsys) -> No
     assert result == 0
     assert printed == saved
     assert saved["summary"]["passed"]
+
+
+def test_verify_without_unit_performs_structural_checks_only(
+    sample_recording, tmp_path
+) -> None:
+    write_cnd(sample_recording, tmp_path)
+
+    report = verify_dataset(tmp_path)
+    subject = report.subjects[0]
+
+    assert report.passed
+    assert not report.round_trip_requested
+    assert not report.mne_smoke_test_requested
+    assert not subject.mne_created
+
+
+def test_verify_reports_missing_dataset_and_subject_failure(
+    sample_recording, tmp_path
+) -> None:
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    with pytest.raises(FileNotFoundError, match="No dataSub"):
+        verify_dataset(empty)
+
+    dataset = tmp_path / "dataset"
+    paths = write_cnd(sample_recording, dataset)
+    paths.neural.write_bytes(b"truncated")
+
+    report = verify_dataset(dataset, neural_unit="V")
+
+    assert not report.passed
+    assert report.subjects[0].failure.startswith("CNDReadError:")
+    assert report.to_dict()["summary"]["n_failed_subjects"] == 1
+
+
+def test_verify_reports_and_skips_empty_subject_placeholder(
+    sample_recording, tmp_path
+) -> None:
+    write_cnd(sample_recording, tmp_path, subject=1)
+    (tmp_path / "dataSub2.mat").touch()
+
+    report = verify_dataset(tmp_path, neural_unit="V")
+    summary = report.to_dict()["summary"]
+
+    assert report.passed
+    assert report.skipped_empty_files == ("dataSub2.mat",)
+    assert summary["n_discovered_subject_files"] == 2
+    assert summary["n_skipped_empty_files"] == 1
+    assert summary["n_subjects"] == 1
+
+
+def test_psd_smoke_test_rejects_single_sample() -> None:
+    raw = mne.io.RawArray(
+        np.zeros((1, 1)), mne.create_info(["Cz"], 100.0, "eeg"), verbose="ERROR"
+    )
+
+    assert not _mne_psd_is_finite(raw)

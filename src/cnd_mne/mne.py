@@ -292,13 +292,13 @@ def from_mne(
 
     volts_per_output_unit = _unit_scale(output_unit)
     trials = tuple(raw.get_data().T / volts_per_output_unit for raw in raw_trials)
-    if original_trial_positions is None:
-        if template_neural is not None:
-            original_trial_positions = template_neural.original_trial_positions
-        if original_trial_positions is None:
-            original_trial_positions = range(1, len(raw_trials) + 1)
-    original = tuple(int(value) for value in original_trial_positions)
-    if len(original) != len(raw_trials):
+    if original_trial_positions is None and template_neural is not None:
+        original = template_neural.original_trial_positions
+    elif original_trial_positions is None:
+        original = tuple(range(1, len(raw_trials) + 1))
+    else:
+        original = tuple(int(value) for value in original_trial_positions)
+    if original is not None and len(original) != len(raw_trials):
         raise CNDValidationError(
             "original_trial_positions length does not match MNE trial count"
         )
@@ -379,7 +379,10 @@ def _extract_channel_locations(
     if montage is None:
         return None
     ch_pos = montage.get_positions().get("ch_pos") or {}
-    if not all(name in ch_pos for name in raw.ch_names):
+    if not all(
+        name in ch_pos and np.all(np.isfinite(np.asarray(ch_pos[name], dtype=float)))
+        for name in raw.ch_names
+    ):
         return None
     locations = []
     for index, name in enumerate(raw.ch_names, start=1):

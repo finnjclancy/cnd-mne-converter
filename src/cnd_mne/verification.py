@@ -63,6 +63,7 @@ class DatasetVerification:
     strict_spec: bool
     round_trip_requested: bool
     mne_smoke_test_requested: bool
+    skipped_empty_files: tuple[str, ...]
     subjects: tuple[SubjectVerification, ...]
 
     @property
@@ -108,6 +109,9 @@ class DatasetVerification:
         )
         result["summary"] = {
             "passed": self.passed,
+            "n_discovered_subject_files": len(self.subjects)
+            + len(self.skipped_empty_files),
+            "n_skipped_empty_files": len(self.skipped_empty_files),
             "n_subjects": len(self.subjects),
             "n_failed_subjects": sum(
                 subject.failure is not None or bool(subject.validation_errors)
@@ -142,9 +146,19 @@ def verify_dataset(
     supplied_path = Path(path).expanduser()
     source = supplied_path.resolve()
     data_directory = source / "dataCND" if (source / "dataCND").is_dir() else source
-    files = sorted(data_directory.glob("dataSub*.mat"), key=_subject_sort_key)
-    if not files:
+    discovered_files = sorted(
+        data_directory.glob("dataSub*.mat"), key=_subject_sort_key
+    )
+    if not discovered_files:
         raise FileNotFoundError(f"No dataSub*.mat files found in {data_directory}")
+    skipped_empty_files = tuple(
+        file.name for file in discovered_files if file.stat().st_size == 0
+    )
+    files = [file for file in discovered_files if file.stat().st_size > 0]
+    if not files:
+        raise FileNotFoundError(
+            f"No non-empty dataSub*.mat files found in {data_directory}"
+        )
     if neural_unit is not None:
         _unit_scale(neural_unit)
 
@@ -160,7 +174,7 @@ def verify_dataset(
         for file in files
     )
     return DatasetVerification(
-        schema_version=1,
+        schema_version=2,
         dataset_name=dataset_name or source.name,
         dataset_path=str(supplied_path),
         generated_at_utc=datetime.now(timezone.utc).isoformat(),
@@ -174,6 +188,7 @@ def verify_dataset(
         strict_spec=strict_spec,
         round_trip_requested=round_trip and neural_unit is not None,
         mne_smoke_test_requested=mne_smoke_test and neural_unit is not None,
+        skipped_empty_files=skipped_empty_files,
         subjects=subjects,
     )
 

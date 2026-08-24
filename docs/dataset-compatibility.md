@@ -1,6 +1,6 @@
 # Observed public dataset compatibility
 
-The table below records a structural scan of every subject file in four public
+The table below records a structural scan of every subject file in six public
 archives. This is not scientific validation of the datasets or their physical
 units.
 
@@ -10,16 +10,18 @@ units.
 | AliceSpeech | 20 | 12 | 500 / 50 Hz | 60 | 2 | No channel names or locations; a CND 1.0 sampling-rate mismatch and a 0.02 s duration difference | Full MNE and round-trip matrix passes in tolerant legacy mode |
 | AAD KULeuven | 16 | 8 | 32 / 32 Hz | 64 | 1 per stimulus file | Subject-specific `stimCND/dataStimN.mat`; separate unattended envelope; missing `stimIdxs`; string conditions; rich subject fields | Full MNE and round-trip matrix passes; missing indices reported |
 | MusicImagery | 21 | 88 | 64 / 64 Hz | 64 | 2 | Listening and imagery conditions; opaque MATLAB `string` object in `dataType` | Full MNE and round-trip matrix passes; modality safely inferred from top-level `eeg` variable |
+| LalorRevSpeech | 10 | 20 | 128 / 128 Hz | 128 | 2 | Time-reversed speech, mastoids, channel locations, and large legacy duration differences | Full MNE and round-trip matrix passes with explicit warnings |
+| SparrKULee2 | 56 non-empty | 1–5 | 64 / 64 Hz | 64 | 1 | MATLAB v7.3/HDF5; subject-specific stimulus files; two mastoid groups; one 0-byte subject placeholder in the official archive | All 56 usable subjects pass MNE and round-trip checks; placeholder is recorded and skipped |
 
-All 76 subject files parsed without structural validation errors. Across 2,596
-trials, all neural and stimulus MNE views, Welch PSD smoke checks, and controlled
+All 142 non-empty subject files parsed without structural validation errors.
+Across 3,008 trials, all neural and stimulus MNE views, Welch PSD smoke checks, and controlled
 round trips passed with zero numerical error under the explicitly recorded `V`
 identity-test assumption. This assumption tests software behavior; it is not a
 scientific assertion about the source unit. See the [JSON evidence](results/README.md).
 
 ## Cross-dataset findings
 
-1. None of the four inspected legacy datasets declares `cndVersion`.
+1. None of the six inspected legacy datasets declares `cndVersion`.
 2. None declares an unambiguous EEG physical unit.
 3. CND 1.0 requires equal neural and stimulus sampling rates, but compatibility
    mode cannot enforce that rule because Alice stores them at a 10:1 ratio.
@@ -31,6 +33,9 @@ scientific assertion about the source unit. See the [JSON evidence](results/READ
    original sampling rate, and stimulus-track metadata.
 8. MATLAB scalar strings are not uniform. MusicImagery contains an opaque MCOS
    string object for `dataType` even though ordinary strings are used elsewhere.
+9. MATLAB storage versions are not uniform. SparrKULee2 requires HDF5 object
+   references, reversed array axes, subject-specific stimuli, and nested
+   external-channel groups.
 
 ## Test levels
 

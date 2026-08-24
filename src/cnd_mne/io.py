@@ -10,8 +10,10 @@ from typing import Any
 
 import numpy as np
 from scipy.io import loadmat, savemat
+from scipy.io.matlab import MatReadError
 
 from .exceptions import CNDReadError
+from .mat73 import is_mat73, load_mat73
 from .model import CNDNeural, CNDPaths, CNDRecording, CNDStimulus
 from .validation import validate_cnd
 
@@ -171,11 +173,21 @@ def write_cnd(
 def _load_mat(path: Path) -> dict[str, Any]:
     try:
         data = loadmat(path, simplify_cells=True)
-    except NotImplementedError as error:
-        raise CNDReadError(
-            f"{path} is probably MATLAB v7.3/HDF5; that variant is not supported yet"
-        ) from error
-    except (OSError, ValueError, TypeError) as error:
+    except NotImplementedError:
+        try:
+            return load_mat73(path)
+        except (OSError, TypeError, ValueError) as hdf_error:
+            raise CNDReadError(
+                f"Could not read MATLAB v7.3/HDF5 file {path}: {hdf_error}"
+            ) from hdf_error
+    except (OSError, ValueError, TypeError, MatReadError) as error:
+        if is_mat73(path):
+            try:
+                return load_mat73(path)
+            except (OSError, TypeError, ValueError) as hdf_error:
+                raise CNDReadError(
+                    f"Could not read MATLAB v7.3/HDF5 file {path}: {hdf_error}"
+                ) from hdf_error
         raise CNDReadError(f"Could not read MATLAB file {path}: {error}") from error
     return {key: value for key, value in data.items() if key not in _MATLAB_METADATA}
 
@@ -219,6 +231,41 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
         }
     elif isinstance(external, Mapping):
         external_fields = dict(external)
+    elif external is not None:
+        groups = [
+            item
+            for item in np.atleast_1d(external).ravel()
+            if isinstance(item, Mapping) and "data" in item
+        ]
+        if groups and len(groups) == np.atleast_1d(external).size:
+            group_trials = [_as_matrix_trial_tuple(group["data"]) for group in groups]
+            if len({len(trials) for trials in group_trials}) != 1:
+                raise CNDReadError(
+                    f"{source}:{variable_name}.extChan groups have unequal trial counts"
+                )
+            external_trials = tuple(
+                np.concatenate([trials[index] for trials in group_trials], axis=1)
+                for index in range(len(group_trials[0]))
+            )
+            descriptions = tuple(
+                str(_scalar(group["description"]))
+                for group in groups
+                if group.get("description") is not None
+            )
+            external_description = "; ".join(descriptions) or None
+            external_fields = {
+                "groupDescriptions": descriptions,
+                "groupFields": tuple(
+                    {
+                        key: item
+                        for key, item in group.items()
+                        if key not in {"data", "description"}
+                    }
+                    for group in groups
+                ),
+            }
+        else:
+            external_fields = {"unparsedValue": external}
 
     original = value.get("origTrialPosition")
     original_positions = (
@@ -375,7 +422,9 @@ def _parse_channel_locations(value: Any) -> tuple[dict[str, Any], ...] | None:
     if isinstance(value, (list, tuple)):
         if all(isinstance(item, Mapping) for item in value):
             return tuple(dict(item) for item in value)
-    array = np.asarray(value, dtype=object)
+    # Preserve a NumPy structured dtype long enough to inspect its field names.
+    # Casting to object here makes ``dtype.names`` disappear.
+    array = np.asarray(value)
     if array.dtype.names:
         return tuple(
             {name: item[name] for name in array.dtype.names} for item in array.ravel()

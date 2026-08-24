@@ -1,8 +1,8 @@
 {
-  "schema_version": 1,
-  "dataset_name": "LalorNatSpeech",
+  "schema_version": 2,
+  "dataset_name": "Lalor Natural Speech",
   "dataset_path": "LalorNatSpeech",
-  "generated_at_utc": "2026-08-24T22:26:49.607017+00:00",
+  "generated_at_utc": "2026-08-24T23:30:34.536070+00:00",
   "versions": {
     "cnd_mne": "0.1.0.dev0",
     "mne": "1.12.1",
@@ -13,6 +13,7 @@
   "strict_spec": false,
   "round_trip_requested": true,
   "mne_smoke_test_requested": true,
+  "skipped_empty_files": [],
   "subjects": [
     {
       "subject": "1",
@@ -41,7 +42,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 2.10808
+      "elapsed_seconds": 2.735291
     },
     {
       "subject": "2",
@@ -70,7 +71,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.304336
+      "elapsed_seconds": 1.379474
     },
     {
       "subject": "3",
@@ -99,7 +100,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.473388
+      "elapsed_seconds": 2.121431
     },
     {
       "subject": "4",
@@ -128,7 +129,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.200993
+      "elapsed_seconds": 1.250825
     },
     {
       "subject": "5",
@@ -157,7 +158,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.161514
+      "elapsed_seconds": 1.145222
     },
     {
       "subject": "6",
@@ -186,7 +187,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.623749
+      "elapsed_seconds": 1.590507
     },
     {
       "subject": "7",
@@ -215,7 +216,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.491586
+      "elapsed_seconds": 1.778984
     },
     {
       "subject": "8",
@@ -244,7 +245,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.420691
+      "elapsed_seconds": 1.598358
     },
     {
       "subject": "9",
@@ -273,7 +274,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.23059
+      "elapsed_seconds": 1.267406
     },
     {
       "subject": "10",
@@ -302,7 +303,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.341786
+      "elapsed_seconds": 1.868494
     },
     {
       "subject": "11",
@@ -331,7 +332,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.169287
+      "elapsed_seconds": 1.235769
     },
     {
       "subject": "12",
@@ -360,7 +361,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.215443
+      "elapsed_seconds": 1.312409
     },
     {
       "subject": "13",
@@ -389,7 +390,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.205611
+      "elapsed_seconds": 1.240672
     },
     {
       "subject": "14",
@@ -418,7 +419,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.213832
+      "elapsed_seconds": 1.270728
     },
     {
       "subject": "15",
@@ -447,7 +448,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.209409
+      "elapsed_seconds": 1.235922
     },
     {
       "subject": "16",
@@ -476,7 +477,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.263519
+      "elapsed_seconds": 1.246914
     },
     {
       "subject": "17",
@@ -505,7 +506,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.260839
+      "elapsed_seconds": 1.364187
     },
     {
       "subject": "18",
@@ -534,7 +535,7 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.223278
+      "elapsed_seconds": 1.354722
     },
     {
       "subject": "19",
@@ -563,11 +564,13 @@
       "cnd_metadata_preserved": true,
       "conversion_warnings": [],
       "failure": null,
-      "elapsed_seconds": 1.258544
+      "elapsed_seconds": 1.585606
     }
   ],
   "summary": {
     "passed": true,
+    "n_discovered_subject_files": 19,
+    "n_skipped_empty_files": 0,
     "n_subjects": 19,
     "n_failed_subjects": 0,
     "n_trials": 380,

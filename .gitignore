@@ -15,6 +15,7 @@ data/
 /AliceSpeech/
 /AAD_KULeuven/
 /musicImagery/
+/external-data/
 *.fif
 *.mat
 *.zip

@@ -14,7 +14,7 @@ Experimental bidirectional conversion between Continuous-event Neural Data
 
 The tested research milestone provides:
 
-- MATLAB v5 CND neural and stimulus readers;
+- MATLAB v5 and v7.3/HDF5 CND neural and stimulus readers;
 - a canonical model that preserves variable-length trials, continuous stimulus
   features, conditions, external channels, and unknown fields;
 - tolerant legacy validation and strict CND 1.0 conformance validation;
@@ -26,16 +26,16 @@ The tested research milestone provides:
 - `inspect` and full-dataset `verify-dataset` commands; and
 - synthetic, committed MATLAB, MNE FIF, CLI, and round-trip tests.
 
-The public validation matrix covers 76 subject files, 2,596 trials, and more
-than 1.9 billion scalar neural values across Lalor Natural Speech, AliceSpeech,
-AAD KULeuven, and Music Imagery. All requested structural, numerical, MNE PSD,
-stimulus-view, and controlled round-trip checks passed. See the
+The public validation matrix covers 142 non-empty subject files, 3,008 trials,
+and more than 3.32 billion scalar neural values across six public archives.
+All requested structural, numerical, MNE PSD, stimulus-view, and controlled
+round-trip checks passed. See the
 [research milestone report](docs/research-milestone-report.md) for the exact
 claims and limitations.
 
-The prototype currently supports EEG only. MATLAB v7.3/HDF5, automatic unit
-discovery, automatic coordinate scaling, external-channel typing, TRF results,
-and arbitrary MNE modalities remain future work.
+The prototype currently supports EEG only. MATLAB v7.3/HDF5 writing, automatic
+unit discovery, automatic coordinate scaling, external-channel typing, TRF
+results, and arbitrary MNE modalities remain future work.
 
 ## Why a companion object is necessary
 
@@ -149,6 +149,7 @@ created CND data against the published CND 1.0 rules.
 - [Observed dataset compatibility](docs/dataset-compatibility.md)
 - [Research milestone report](docs/research-milestone-report.md)
 - [Full-dataset verification evidence](docs/results/README.md)
+- [Testing strategy and coverage interpretation](docs/testing-strategy.md)
 - [Public test-dataset release and checksums](docs/dataset-assets.md)
 - [Review of existing Python CND importers](docs/existing-importers.md)
 - [Implementation roadmap](docs/implementation-roadmap.md)

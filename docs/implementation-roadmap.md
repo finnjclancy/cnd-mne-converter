@@ -8,18 +8,18 @@ discussion without silently altering scientific data.
 ## Phase 1: structural prototype — implemented
 
 - Canonical neural and stimulus dataclasses.
-- MATLAB v5 reader and atomic writer.
+- MATLAB v5 and v7.3/HDF5 readers plus an atomic MATLAB v5 writer.
 - Dimension and duration validation.
 - One EEG `RawArray` per CND trial.
 - Explicit volts conversion.
 - Conservative MNE-to-CND model conversion.
 - CLI structural inspection.
 - Synthetic round-trip tests.
-- Full structural scans of four public datasets (76 subject files).
+- Full structural scans of six public datasets (142 non-empty subject files).
 
 ## Phase 1b: tested interoperability milestone — implemented
 
-- End-to-end verification of 76 subjects and 2,596 trials.
+- End-to-end verification of 142 subjects and 3,008 trials.
 - MNE Welch PSD smoke tests for every subject.
 - MNE views for all univariate and multivariate stimulus features.
 - Template-backed round trips with zero observed numerical error.
@@ -48,7 +48,7 @@ answer.
 
 ## Phase 3: broaden compatibility
 
-- MATLAB v7.3/HDF5 structures.
+- Broader MATLAB v7.3/HDF5 layout coverage and optional v7.3 writing.
 - Explicit external-channel mapping for mastoids, EOG, EMG, and miscellaneous
   channels.
 - Padding-aware alignment metadata.
@@ -57,7 +57,7 @@ answer.
 - Support for MEG and fNIRS only after defining modality-specific metadata.
 - Memory-aware or lazy reading for multi-gigabyte datasets.
 
-## Phase 4: validation matrix — implemented for the first four archives
+## Phase 4: validation matrix — implemented for the first six archives
 
 For every available CND dataset, record:
 
@@ -88,8 +88,9 @@ stores machine-readable reports under `docs/results/`.
 
 ## Definition of done for the first research milestone
 
-- [x] Lalor, Alice, AAD, and MusicImagery parse with documented warnings only.
-- [x] All 76 subjects pass structural MNE, PSD, stimulus-view, and controlled
+- [x] Lalor natural/reversed, Alice, AAD, MusicImagery, and SparrKULee2 parse
+  with documented warnings only.
+- [x] All 142 non-empty subjects pass structural MNE, PSD, stimulus-view, and controlled
   round-trip checks under a recorded identity-test unit assumption.
 - [ ] A confirmed-unit subset produces scientifically scaled plots and summary
   statistics.
