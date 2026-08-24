@@ -9,9 +9,9 @@ from cnd_mne import CNDReadError, CNDRecording, read_cnd, write_cnd
 def test_cnd_matlab_round_trip(sample_recording, tmp_path) -> None:
     paths = write_cnd(sample_recording, tmp_path, subject="01")
 
-    assert paths.neural == tmp_path / "dataSub01.mat"
+    assert paths.neural == tmp_path / "dataSub1.mat"
     assert paths.stimulus == tmp_path / "dataStim.mat"
-    loaded = read_cnd(tmp_path, subject="01")
+    loaded = read_cnd(tmp_path, subject=1)
 
     assert loaded.neural is not None
     assert loaded.stimulus is not None
@@ -21,9 +21,12 @@ def test_cnd_matlab_round_trip(sample_recording, tmp_path) -> None:
     assert loaded.neural.original_trial_positions == (2, 1)
     assert loaded.neural.channel_names == ("Cz", "Pz")
     assert loaded.neural.extra_fields["customField"] == "preserve me"
+    assert loaded.neural.external_fields["channelType"] == "mastoids"
+    assert loaded.neural.cnd_version == 1.0
     assert loaded.stimulus.names == ("Envelope", "Word Onsets")
     assert loaded.stimulus.condition_names == ("A", "B")
     assert loaded.stimulus.extra_fields["customStimField"] == 42
+    assert loaded.stimulus.cnd_version == 1.0
     for expected, actual in zip(
         sample_recording.neural.trials, loaded.neural.trials, strict=True
     ):
@@ -39,6 +42,23 @@ def test_writer_protects_existing_files(sample_recording, tmp_path) -> None:
     write_cnd(sample_recording, tmp_path)
     with pytest.raises(FileExistsError):
         write_cnd(sample_recording, tmp_path)
+
+
+def test_writer_preflights_all_outputs(sample_recording, tmp_path) -> None:
+    write_cnd(CNDRecording(stimulus=sample_recording.stimulus), tmp_path)
+
+    with pytest.raises(FileExistsError):
+        write_cnd(sample_recording, tmp_path)
+
+    assert not (tmp_path / "dataSub1.mat").exists()
+
+
+@pytest.mark.parametrize("subject", [0, -1, "participant"])
+def test_writer_requires_positive_numeric_subject(
+    sample_recording, tmp_path, subject
+) -> None:
+    with pytest.raises(ValueError, match="positive numeric"):
+        write_cnd(sample_recording, tmp_path, subject=subject)
 
 
 def test_directory_requires_subject_when_multiple(sample_recording, tmp_path) -> None:

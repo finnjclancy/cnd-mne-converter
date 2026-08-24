@@ -136,12 +136,25 @@ def write_cnd(
     report = validate_cnd(recording)
     report.raise_for_errors()
     output_dir = Path(destination).expanduser()
+    subject_label = _canonical_subject_label(subject)
+
+    planned_paths: list[Path] = []
+    if recording.neural is not None:
+        planned_paths.append(output_dir / f"dataSub{subject_label}.mat")
+    if recording.stimulus is not None:
+        planned_paths.append(output_dir / "dataStim.mat")
+    if not overwrite:
+        existing = [path for path in planned_paths if path.exists()]
+        if existing:
+            formatted = ", ".join(str(path) for path in existing)
+            raise FileExistsError(f"Refusing to overwrite {formatted}")
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     neural_path: Path | None = None
     stimulus_path: Path | None = None
     if recording.neural is not None:
-        neural_path = output_dir / f"dataSub{subject}.mat"
+        neural_path = output_dir / f"dataSub{subject_label}.mat"
         payload = {recording.neural.variable_name: _neural_to_mat(recording.neural)}
         _atomic_savemat(neural_path, payload, overwrite, compression)
     if recording.stimulus is not None:
@@ -183,7 +196,7 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
     if not isinstance(value, Mapping):
         raise CNDReadError(f"{source}:{variable_name} is not a MATLAB structure")
     try:
-        trials = _as_trial_tuple(value["data"])
+        trials = _as_matrix_trial_tuple(value["data"])
         sfreq = float(_scalar(value["fs"]))
     except KeyError as error:
         raise CNDReadError(
@@ -193,11 +206,19 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
     channel_locations = _parse_channel_locations(value.get("chanlocs"))
     external_trials: tuple[np.ndarray, ...] | None = None
     external_description: str | None = None
+    external_fields: dict[str, Any] = {}
     external = value.get("extChan")
     if isinstance(external, Mapping) and "data" in external:
-        external_trials = _as_trial_tuple(external["data"])
+        external_trials = _as_matrix_trial_tuple(external["data"])
         if external.get("description") is not None:
             external_description = str(_scalar(external["description"]))
+        external_fields = {
+            key: item
+            for key, item in external.items()
+            if key not in {"data", "description"}
+        }
+    elif isinstance(external, Mapping):
+        external_fields = dict(external)
 
     original = value.get("origTrialPosition")
     original_positions = (
@@ -223,9 +244,10 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
         channel_locations=channel_locations,
         external_trials=external_trials,
         external_description=external_description,
+        external_fields=external_fields,
         rereference=value.get("reRef"),
         padding_start_sample=value.get("paddingStartSample"),
-        cnd_version=_optional_string(value.get("cndVersion")),
+        cnd_version=_optional_scalar(value.get("cndVersion")),
         data_unit=data_unit,
         extra_fields=extras,
         variable_name=variable_name,
@@ -272,7 +294,7 @@ def _parse_stimulus(value: Any, source: Path) -> CNDStimulus:
             if condition_names is not None
             else None
         ),
-        cnd_version=_optional_string(value.get("cndVersion")),
+        cnd_version=_optional_scalar(value.get("cndVersion")),
         extra_fields=extras,
         source_path=source,
     )
@@ -289,6 +311,14 @@ def _as_trial_tuple(value: Any) -> tuple[np.ndarray, ...]:
     if array.ndim == 3:
         return tuple(np.asarray(array[index]) for index in range(array.shape[0]))
     raise CNDReadError(f"Cannot interpret neural data with shape {array.shape}")
+
+
+def _as_matrix_trial_tuple(value: Any) -> tuple[np.ndarray, ...]:
+    """Read neural-style trials and restore squeezed one-channel matrices."""
+    return tuple(
+        array[:, np.newaxis] if array.ndim == 1 else array
+        for array in _as_trial_tuple(value)
+    )
 
 
 def _as_feature_tuple(
@@ -371,10 +401,16 @@ def _neural_to_mat(neural: CNDNeural) -> dict[str, Any]:
     if neural.channel_locations is not None:
         result["chanlocs"] = _struct_array(neural.channel_locations)
     if neural.external_trials is not None:
-        result["extChan"] = {
-            "data": _cell_row(neural.external_trials),
-            "description": neural.external_description or "External channels",
-        }
+        external = dict(neural.external_fields)
+        external.update(
+            {
+                "data": _cell_row(neural.external_trials),
+                "description": neural.external_description or "External channels",
+            }
+        )
+        result["extChan"] = external
+    elif neural.external_fields:
+        result["extChan"] = dict(neural.external_fields)
     if neural.rereference is not None:
         result["reRef"] = neural.rereference
     if neural.padding_start_sample is not None:
@@ -532,6 +568,12 @@ def _optional_string(value: Any) -> str | None:
     return None if value is None else str(_scalar(value))
 
 
+def _optional_scalar(value: Any) -> Any:
+    if value is None:
+        return None
+    return _python_scalar(_scalar(value))
+
+
 def _string_or_default(value: Any, default: str) -> str:
     scalar = _scalar(value) if value is not None else None
     if isinstance(scalar, (str, np.str_)):
@@ -541,3 +583,10 @@ def _string_or_default(value: Any, default: str) -> str:
 
 def _python_scalar(value: Any) -> Any:
     return value.item() if isinstance(value, np.generic) else value
+
+
+def _canonical_subject_label(subject: str | int) -> str:
+    value = str(subject)
+    if not value.isdigit() or int(value) < 1:
+        raise ValueError("subject must be a positive numeric CND index")
+    return str(int(value))

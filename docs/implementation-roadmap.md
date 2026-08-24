@@ -17,6 +17,17 @@ discussion without silently altering scientific data.
 - Synthetic round-trip tests.
 - Full structural scans of four public datasets (76 subject files).
 
+## Phase 1b: tested interoperability milestone — implemented
+
+- End-to-end verification of 76 subjects and 2,596 trials.
+- MNE Welch PSD smoke tests for every subject.
+- MNE views for all univariate and multivariate stimulus features.
+- Template-backed round trips with zero observed numerical error.
+- Explicit continuous view with protected MNE boundary annotations.
+- Tolerant legacy and strict CND 1.0 validation modes.
+- Committed MATLAB fixture, FIF interoperability test, JSON evidence, and CI.
+- Numeric `cndVersion` and squeezed one-channel parser fixes.
+
 ## Phase 2: scientific mapping decisions
 
 Resolve with the CND maintainers:
@@ -25,9 +36,10 @@ Resolve with the CND maintainers:
 2. Should a future CND version require a `dataUnit` field?
 3. What coordinate unit and frame are intended for `chanlocs`?
 4. How should pre/post-stimulus padding be represented and validated?
-5. Is a list of `Raw` objects acceptable, or should an MNE-facing convenience
-   view concatenate trials with boundary annotations?
-6. Should word/note onset vectors gain a derived `Annotations` view?
+5. Is the implemented list of `Raw` objects plus an explicit boundary-annotated
+   concatenated view acceptable for an upstream MNE API?
+6. Should word/note onset vectors gain a derived `Annotations` view in addition
+   to the implemented `misc`-channel stimulus view?
 7. How should multiple stimulus alternatives, such as attended and unattended
    envelopes, be represented?
 
@@ -45,7 +57,7 @@ answer.
 - Support for MEG and fNIRS only after defining modality-specific metadata.
 - Memory-aware or lazy reading for multi-gigabyte datasets.
 
-## Phase 4: validation matrix
+## Phase 4: validation matrix — implemented for the first four archives
 
 For every available CND dataset, record:
 
@@ -59,8 +71,9 @@ For every available CND dataset, record:
 - MNE construction result after units are confirmed; and
 - numerical round-trip error.
 
-Large data should be cached outside the repository. CI should use small fixtures;
-full-dataset tests should run locally or in a separately provisioned workflow.
+Large data are cached outside Git history and mirrored as GitHub release assets.
+CI uses small fixtures; the reproducible full-dataset verifier runs locally and
+stores machine-readable reports under `docs/results/`.
 
 ## Phase 5: upstream strategy
 
@@ -75,11 +88,13 @@ full-dataset tests should run locally or in a separately provisioned workflow.
 
 ## Definition of done for the first research milestone
 
-- Lalor, Alice, AAD, and MusicImagery all parse with documented warnings only.
-- A confirmed-unit subset converts to MNE and produces sensible channel/time
-  metadata and plots.
-- Supported synthetic data survives CND -> MNE -> CND within numerical
-  tolerance.
-- Every implicit loss or unsupported field is visible in validation output.
-- Architecture decisions and unresolved questions are suitable for discussion
-  with Giovanni Di Liberto and MNE maintainers.
+- [x] Lalor, Alice, AAD, and MusicImagery parse with documented warnings only.
+- [x] All 76 subjects pass structural MNE, PSD, stimulus-view, and controlled
+  round-trip checks under a recorded identity-test unit assumption.
+- [ ] A confirmed-unit subset produces scientifically scaled plots and summary
+  statistics.
+- [x] Supported synthetic and public data survive CND -> MNE -> CND within
+  numerical tolerance.
+- [x] Unsupported MNE metadata and CND conformance deviations are visible.
+- [x] Architecture decisions, JSON evidence, and unresolved questions are
+  suitable for discussion with Giovanni Di Liberto and MNE maintainers.

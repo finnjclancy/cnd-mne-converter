@@ -10,6 +10,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 Array = NDArray[np.generic]
+CNDVersion = str | int | float
 
 
 @dataclass(slots=True)
@@ -28,9 +29,10 @@ class CNDNeural:
     channel_locations: tuple[dict[str, Any], ...] | None = None
     external_trials: tuple[Array, ...] | None = None
     external_description: str | None = None
+    external_fields: dict[str, Any] = field(default_factory=dict)
     rereference: Any = None
     padding_start_sample: Any = None
-    cnd_version: str | None = None
+    cnd_version: CNDVersion | None = None
     data_unit: str | None = None
     extra_fields: dict[str, Any] = field(default_factory=dict)
     variable_name: str = "eeg"
@@ -72,7 +74,7 @@ class CNDStimulus:
     stimulus_indices: tuple[Any, ...] | None = None
     condition_indices: tuple[Any, ...] | None = None
     condition_names: tuple[str, ...] | None = None
-    cnd_version: str | None = None
+    cnd_version: CNDVersion | None = None
     extra_fields: dict[str, Any] = field(default_factory=dict)
     source_path: Path | None = None
 
@@ -117,6 +119,70 @@ class CNDRecording:
             return self.stimulus.n_trials
         return 0
 
+    @property
+    def trial_metadata(self) -> tuple[CNDTrialMetadata, ...]:
+        """Return a normalized, read-only summary for every paired trial."""
+        neural = self.neural
+        stimulus = self.stimulus
+        output: list[CNDTrialMetadata] = []
+        for index in range(self.n_trials):
+            stimulus_index = None
+            condition_index = None
+            condition_name = None
+            stimulus_samples = None
+            stimulus_duration = None
+            if stimulus is not None and index < stimulus.n_trials:
+                stimulus_index = stimulus.resolved_stimulus_indices[index]
+                if stimulus.condition_indices is not None:
+                    condition_index = stimulus.condition_indices[index]
+                    condition_name = _resolve_condition_name(stimulus, condition_index)
+                if stimulus.features:
+                    stimulus_samples = int(
+                        np.asarray(stimulus.features[0][index]).shape[0]
+                    )
+                    stimulus_duration = stimulus_samples / stimulus.sfreq
+
+            neural_samples = None
+            neural_duration = None
+            original_position = None
+            if neural is not None and index < neural.n_trials:
+                neural_samples = int(np.asarray(neural.trials[index]).shape[0])
+                neural_duration = neural_samples / neural.sfreq
+                if neural.original_trial_positions is not None:
+                    original_position = neural.original_trial_positions[index]
+
+            output.append(
+                CNDTrialMetadata(
+                    index=index,
+                    cnd_index=index + 1,
+                    stimulus_index=stimulus_index,
+                    condition_index=condition_index,
+                    condition_name=condition_name,
+                    original_position=original_position,
+                    neural_samples=neural_samples,
+                    neural_duration_seconds=neural_duration,
+                    stimulus_samples=stimulus_samples,
+                    stimulus_duration_seconds=stimulus_duration,
+                )
+            )
+        return tuple(output)
+
+
+@dataclass(slots=True, frozen=True)
+class CNDTrialMetadata:
+    """Normalized metadata for one zero-indexed Python / one-indexed CND trial."""
+
+    index: int
+    cnd_index: int
+    stimulus_index: Any = None
+    condition_index: Any = None
+    condition_name: str | None = None
+    original_position: int | None = None
+    neural_samples: int | None = None
+    neural_duration_seconds: float | None = None
+    stimulus_samples: int | None = None
+    stimulus_duration_seconds: float | None = None
+
 
 @dataclass(slots=True, frozen=True)
 class CNDPaths:
@@ -124,3 +190,22 @@ class CNDPaths:
 
     neural: Path | None
     stimulus: Path | None
+
+
+def _resolve_condition_name(stimulus: CNDStimulus, condition_index: Any) -> str | None:
+    if isinstance(condition_index, (str, np.str_)):
+        return str(condition_index)
+    if stimulus.condition_names is None:
+        return None
+    if isinstance(condition_index, (int, np.integer)):
+        offset = int(condition_index) - 1
+    elif (
+        isinstance(condition_index, (float, np.floating))
+        and float(condition_index).is_integer()
+    ):
+        offset = int(condition_index) - 1
+    else:
+        return None
+    if 0 <= offset < len(stimulus.condition_names):
+        return stimulus.condition_names[offset]
+    return None

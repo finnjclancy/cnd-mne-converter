@@ -10,6 +10,10 @@ legacy CND datasets do not declare EEG units or coordinate units consistently.
 Some datasets also store neural and stimulus signals at different sampling
 frequencies.
 
+CND 1.0 specifies equal neural and stimulus sampling rates. AliceSpeech is a
+published legacy exception (500 Hz versus 50 Hz), so compatibility and
+conformance must be distinguishable concepts.
+
 A wrong unit conversion can change EEG amplitudes by a factor of one million.
 A wrong coordinate scale or axis mapping can produce plausible-looking but
 incorrect topographies. Truncating arrays by sample count is invalid when their
@@ -22,6 +26,8 @@ sampling frequencies differ.
 - MNE montage creation is disabled by default. The initial EEGLAB-compatible
   axis transform requires an explicit multiplier to metres.
 - Neural and stimulus durations are compared in seconds.
+- Sampling-rate inequality is a warning in tolerant legacy mode and an error in
+  strict CND 1.0 mode.
 - The prototype never automatically resamples, truncates, or pads signals.
 
 ## Consequences

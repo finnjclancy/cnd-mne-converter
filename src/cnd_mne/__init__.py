@@ -10,8 +10,9 @@ from .exceptions import (
 from .inspection import inspect_cnd
 from .io import read_cnd, read_cnd_neural, read_cnd_stimulus, write_cnd
 from .mne import MNECNDRecording, from_mne, to_mne
-from .model import CNDNeural, CNDPaths, CNDRecording, CNDStimulus
+from .model import CNDNeural, CNDPaths, CNDRecording, CNDStimulus, CNDTrialMetadata
 from .validation import ValidationIssue, ValidationReport, validate_cnd
+from .verification import DatasetVerification, SubjectVerification, verify_dataset
 
 __all__ = [
     "CNDAmbiguousUnitError",
@@ -21,9 +22,12 @@ __all__ = [
     "CNDReadError",
     "CNDRecording",
     "CNDStimulus",
+    "CNDTrialMetadata",
     "CNDUnsupportedError",
     "CNDValidationError",
+    "DatasetVerification",
     "MNECNDRecording",
+    "SubjectVerification",
     "ValidationIssue",
     "ValidationReport",
     "from_mne",
@@ -33,6 +37,7 @@ __all__ = [
     "read_cnd_stimulus",
     "to_mne",
     "validate_cnd",
+    "verify_dataset",
     "write_cnd",
 ]
 

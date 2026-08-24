@@ -10,13 +10,16 @@ from .model import CNDRecording
 from .validation import validate_cnd
 
 
-def inspect_cnd(recording: CNDRecording) -> dict[str, Any]:
+def inspect_cnd(
+    recording: CNDRecording, *, strict_spec: bool = False
+) -> dict[str, Any]:
     """Return a JSON-serializable structural and validation summary."""
     neural = recording.neural
     stimulus = recording.stimulus
-    report = validate_cnd(recording)
+    report = validate_cnd(recording, strict_spec=strict_spec)
     output: dict[str, Any] = {
         "n_trials": recording.n_trials,
+        "strict_spec": strict_spec,
         "neural": None,
         "stimulus": None,
         "validation": {

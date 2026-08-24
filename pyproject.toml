@@ -9,7 +9,6 @@ description = "Bidirectional conversion between CND datasets and MNE-Python obje
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "h5py>=3.10",
   "mne>=1.8",
   "numpy>=1.26",
   "scipy>=1.12",
@@ -17,6 +16,10 @@ dependencies = [
 
 [project.scripts]
 cnd-mne = "cnd_mne.cli:main"
+
+[project.urls]
+Repository = "https://github.com/finnjclancy/cnd-mne-converter"
+Issues = "https://github.com/finnjclancy/cnd-mne-converter/issues"
 
 [project.optional-dependencies]
 dev = [

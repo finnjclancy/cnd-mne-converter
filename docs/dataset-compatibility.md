@@ -6,21 +6,23 @@ units.
 
 | Dataset | Subjects scanned | Trials per subject | Neural / stimulus rate | Channels | Features | Important variation | Prototype result |
 | --- | ---: | ---: | --- | ---: | ---: | --- | --- |
-| LalorNatSpeech | 19 | 20 | 128 / 128 Hz | 128 | 4 | Channel locations, mastoids, multidimensional spectrogram and phonetic features; EEG is 1.07-2.86 s longer than stimulus | Reads and validates with explicit duration and unit warnings |
-| AliceSpeech | 20 | 12 | 500 / 50 Hz | 60 | 2 | No channel names or locations; no external channels; clocks align by duration rather than sample count | Reads and validates; generated MNE channel names required |
-| AAD KULeuven | 16 | 8 | 32 / 32 Hz | 64 | 1 per stimulus file | Subject-specific `stimCND/dataStimN.mat`; separate unattended envelope; missing `stimIdxs`; string conditions; rich subject fields | Reads and validates; missing indices reported and metadata preserved |
-| MusicImagery | 21 | 88 | 64 / 64 Hz | 64 | 2 | Listening and imagery conditions; opaque MATLAB `string` object in `dataType` | Reads and validates; modality safely inferred from top-level `eeg` variable |
+| LalorNatSpeech | 19 | 20 | 128 / 128 Hz | 128 | 4 | Channel locations, mastoids, multidimensional spectrogram and phonetic features; all trials differ in duration and seven neural trials are unusually long | Full MNE and round-trip matrix passes with explicit warnings |
+| AliceSpeech | 20 | 12 | 500 / 50 Hz | 60 | 2 | No channel names or locations; a CND 1.0 sampling-rate mismatch and a 0.02 s duration difference | Full MNE and round-trip matrix passes in tolerant legacy mode |
+| AAD KULeuven | 16 | 8 | 32 / 32 Hz | 64 | 1 per stimulus file | Subject-specific `stimCND/dataStimN.mat`; separate unattended envelope; missing `stimIdxs`; string conditions; rich subject fields | Full MNE and round-trip matrix passes; missing indices reported |
+| MusicImagery | 21 | 88 | 64 / 64 Hz | 64 | 2 | Listening and imagery conditions; opaque MATLAB `string` object in `dataType` | Full MNE and round-trip matrix passes; modality safely inferred from top-level `eeg` variable |
 
-All 76 subject files parsed without structural validation errors. The warnings
-shown in the table are deliberate indicators of unresolved metadata or timing,
-not parser failures.
+All 76 subject files parsed without structural validation errors. Across 2,596
+trials, all neural and stimulus MNE views, Welch PSD smoke checks, and controlled
+round trips passed with zero numerical error under the explicitly recorded `V`
+identity-test assumption. This assumption tests software behavior; it is not a
+scientific assertion about the source unit. See the [JSON evidence](results/README.md).
 
 ## Cross-dataset findings
 
 1. None of the four inspected legacy datasets declares `cndVersion`.
 2. None declares an unambiguous EEG physical unit.
-3. Sampling-rate equality cannot be required: Alice stores neural and stimulus
-   features at a 10:1 rate ratio.
+3. CND 1.0 requires equal neural and stimulus sampling rates, but compatibility
+   mode cannot enforce that rule because Alice stores them at a 10:1 ratio.
 4. Sample-count truncation is not a general alignment solution.
 5. Channel locations cannot be required because Alice omits them.
 6. `stimIdxs` and numeric `condIdxs` cannot be assumed because AAD omits the
@@ -46,9 +48,17 @@ Small generated MATLAB files test:
 
 ### Local integration tests
 
-Full public datasets remain outside Git. The initial scan loaded each subject
-sequentially to bound memory use. The `cnd-mne inspect` command provides the
-detailed per-file report.
+Full public datasets remain outside Git history and are available as release
+assets. The verifier loads each subject sequentially to bound memory use:
+
+```bash
+uv run cnd-mne verify-dataset /path/to/dataset \
+  --neural-unit V \
+  --output verification.json
+```
+
+Use `V` only for a neutral numerical identity test. A scientific run must use a
+confirmed physical unit.
 
 ## Unresolved scientific questions
 
@@ -58,5 +68,7 @@ detailed per-file report.
   `chanlocs`.
 - Define the meaning of neural samples before and after the stimulus, including
   datasets with and without `paddingStartSample`.
+- Determine whether the seven unusually long Lalor neural trials across five
+  subjects are intentional; their largest neural/stimulus difference is 197 s.
 - Decide how attended and unattended AAD stimulus files should be represented
   together without renaming or losing provenance.

@@ -3,6 +3,8 @@
 Experimental bidirectional conversion between Continuous-event Neural Data
 (CND) MATLAB structures and MNE-Python objects.
 
+[![CI](https://github.com/finnjclancy/cnd-mne-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/finnjclancy/cnd-mne-converter/actions/workflows/ci.yml)
+
 > [!WARNING]
 > This is an early research prototype, not yet a scientifically validated
 > converter. In particular, the physical units and coordinate units are absent
@@ -10,17 +12,26 @@ Experimental bidirectional conversion between Continuous-event Neural Data
 
 ## Current status
 
-The first vertical slice now provides:
+The tested research milestone provides:
 
 - MATLAB v5 CND neural and stimulus readers;
 - a canonical model that preserves variable-length trials, continuous stimulus
   features, conditions, external channels, and unknown fields;
-- validation of dimensions, metadata, and synchronization in seconds;
+- tolerant legacy validation and strict CND 1.0 conformance validation;
 - one MNE `RawArray` per CND neural trial;
+- MNE `misc` views of continuous stimulus features;
+- explicit concatenation with protected trial-boundary annotations;
 - explicit conversion of declared EEG units to MNE's required volts;
-- a conservative MNE-to-CND model adapter and atomic MATLAB writer;
-- an `inspect` command; and
-- synthetic CND -> MNE -> CND round-trip tests.
+- template-backed MNE-to-CND export and an atomic MATLAB writer;
+- `inspect` and full-dataset `verify-dataset` commands; and
+- synthetic, committed MATLAB, MNE FIF, CLI, and round-trip tests.
+
+The public validation matrix covers 76 subject files, 2,596 trials, and more
+than 1.9 billion scalar neural values across Lalor Natural Speech, AliceSpeech,
+AAD KULeuven, and Music Imagery. All requested structural, numerical, MNE PSD,
+stimulus-view, and controlled round-trip checks passed. See the
+[research milestone report](docs/research-milestone-report.md) for the exact
+claims and limitations.
 
 The prototype currently supports EEG only. MATLAB v7.3/HDF5, automatic unit
 discovery, automatic coordinate scaling, external-channel typing, TRF results,
@@ -74,30 +85,54 @@ The adapter does not concatenate trials or resample stimulus features. If CND
 does not contain channel locations, generated names such as `EEG001` are used
 and no montage is created.
 
+### Stimulus features and explicit concatenation
+
+```python
+# The speech envelope keeps the stimulus sampling rate and arbitrary units.
+envelope_trials = mne_recording.stimulus_raws("Speech Envelope Vectors")
+
+# This is opt-in. MNE boundary annotations protect every artificial join.
+continuous_view = mne_recording.concatenate()
+print(mne_recording.trial_slices)
+```
+
 ### MNE to CND
 
 ```python
-from cnd_mne import from_mne, write_cnd
+from cnd_mne import write_cnd
 
-recording = from_mne(
-    mne_recording.raws,
-    stimulus=mne_recording.stimulus,
-    output_unit="V",
-    device_name="Example device",
-)
+# Filtering can modify the MNE values without changing trial length.
+mne_recording.raws[0].filter(1, 15)
+
+# The source template retains stimulus features and CND-only metadata.
+recording = mne_recording.to_cnd(output_unit="uV")
 paths = write_cnd(recording, "converted/dataCND", subject=1)
 ```
 
 Existing files are protected unless `overwrite=True` is passed. MNE cannot
 infer speech envelopes, word onsets, conditions, or original trial order, so
-these must be retained or supplied explicitly for export.
+use template-backed export after importing CND. For MNE data created elsewhere,
+`from_mne(...)` constructs a new CND recording and reports unsupported metadata.
+
+### Verify a complete dataset
+
+```bash
+uv run cnd-mne verify-dataset /path/to/dataset \
+  --neural-unit uV \
+  --output verification.json
+```
+
+The unit is mandatory for MNE checks when a legacy file omits it. Supply only a
+unit confirmed by the dataset owner. Use `--strict-spec` when validating newly
+created CND data against the published CND 1.0 rules.
 
 ## Design rules
 
 1. **One `RawArray` per trial.** CND trials can have different durations, while
    an MNE `Epochs` object normally requires equal-length epochs.
-2. **Separate neural and stimulus clocks.** A valid dataset can store EEG at
-   500 Hz and its speech envelope at 50 Hz. Alignment is checked in seconds.
+2. **Preserve legacy clocks and report conformance.** CND 1.0 requires equal
+   neural and stimulus rates, but AliceSpeech stores 500 Hz and 50 Hz. Tolerant
+   mode preserves both clocks and warns; strict mode rejects the mismatch.
 3. **No automatic resampling or truncation.** Either changes scientific data
    and must be requested through a future explicit policy.
 4. **No unit guessing.** MNE EEG is in volts; conversion stops when CND does not
@@ -112,6 +147,8 @@ these must be retained or supplied explicitly for export.
 ## Repository documentation
 
 - [Observed dataset compatibility](docs/dataset-compatibility.md)
+- [Research milestone report](docs/research-milestone-report.md)
+- [Full-dataset verification evidence](docs/results/README.md)
 - [Public test-dataset release and checksums](docs/dataset-assets.md)
 - [Review of existing Python CND importers](docs/existing-importers.md)
 - [Implementation roadmap](docs/implementation-roadmap.md)
@@ -126,11 +163,12 @@ these must be retained or supplied explicitly for export.
 
 ```bash
 uv sync --extra dev
-uv run pytest
+uv run pytest --cov=cnd_mne
 uv run ruff check .
 uv run ruff format --check .
 ```
 
 Large public datasets are intentionally excluded from Git history. They are
 available as checksum-verified GitHub release assets for local integration
-tests, while unit tests generate small MATLAB fixtures.
+tests. CI uses the small, committed and regeneratable MATLAB fixture under
+`tests/data/`.

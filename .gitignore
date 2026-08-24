@@ -18,3 +18,5 @@ data/
 *.fif
 *.mat
 *.zip
+!tests/data/
+!tests/data/**/*.mat

@@ -18,9 +18,10 @@ joins could mix samples from unrelated recordings. Padding all trials to create
 The first adapter returns one `mne.io.RawArray` per CND trial, wrapped in
 `MNECNDRecording`. Trial order remains the canonical model's order.
 
-No implicit concatenation or padding is performed. A future explicit
-concatenation helper may add boundary annotations and preserve the original
-sample ranges.
+No implicit concatenation or padding is performed. The explicit
+`MNECNDRecording.concatenate()` helper creates a copied continuous view. MNE
+inserts `BAD boundary` and `EDGE boundary` annotations, while the converter adds
+`CND_TRIAL/*` annotations and exposes the exact `trial_slices`.
 
 ## Consequences
 

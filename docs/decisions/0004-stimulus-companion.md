@@ -18,7 +18,9 @@ also lose feature-axis metadata and complicate round-trip export.
 
 Keep stimulus features in `CNDStimulus`, indexed as
 `feature -> trial -> ndarray`. `MNECNDRecording` pairs this companion data with
-the MNE neural trials.
+the MNE neural trials. `MNECNDRecording.stimulus_raws()` provides an optional
+derived MNE view: each feature dimension becomes a `misc` channel and keeps the
+stimulus sampling rate and arbitrary numerical units.
 
 Sparse event features may later gain an opt-in conversion to MNE annotations,
 but that will be a derived view rather than the canonical representation.

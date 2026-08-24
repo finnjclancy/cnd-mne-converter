@@ -26,7 +26,8 @@ def sample_recording() -> CNDRecording:
             np.ones((120, 2)) * 2,
         ),
         external_description="Mastoids",
-        cnd_version="1.0",
+        external_fields={"channelType": "mastoids"},
+        cnd_version=1.0,
         data_unit="uV",
         extra_fields={"customField": "preserve me"},
     )
@@ -40,7 +41,7 @@ def sample_recording() -> CNDRecording:
         stimulus_indices=(1, 2),
         condition_indices=(1, 2),
         condition_names=("A", "B"),
-        cnd_version="1.0",
+        cnd_version=1.0,
         extra_fields={"customStimField": 42},
     )
     return CNDRecording(neural, stimulus)

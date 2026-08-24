@@ -11,23 +11,24 @@ requiring confirmation.
 | `eeg.dataType` | `CNDNeural.data_type` | MNE channel type | MVP supports EEG only; opaque legacy strings fall back to the variable name |
 | `eeg.deviceName` | `CNDNeural.device_name` | Provenance in `Info["description"]` | MNE has no universal device-name field |
 | `eeg.chanlocs` | Tuple of field-preserving dictionaries | Optional `DigMontage` | EEGLAB axis mapping and scale to metres are opt-in |
-| `eeg.extChan` | Separate external trial arrays and description | Not converted in MVP | Channel type and names can be ambiguous |
+| `eeg.extChan` | Separate external trial arrays, description, and additional fields | Retained in companion model, not added to neural `Raw` by default | Channel type, names, and units can be ambiguous |
 | `eeg.origTrialPosition` | One-based stored values | Retained in companion model | Never collapse into bare `Raw` |
 | `eeg.paddingStartSample` | Preserved verbatim | Not yet converted to annotations | Needed for precise stimulus onset alignment |
-| `stim.data` | `feature -> trial -> ndarray` | Companion `CNDStimulus` | Never force arbitrary features into physiological channels |
-| `stim.fs` | Independent stimulus sampling rate | Companion time base | It need not equal neural `sfreq` |
+| `stim.data` | `feature -> trial -> ndarray` | Companion `CNDStimulus`; optional `misc` `RawArray` views | Never force arbitrary features into physiological channels |
+| `stim.fs` | Independent stimulus sampling rate | Companion and stimulus-view time base | CND 1.0 requires equality with neural `fs`; tolerant mode preserves observed legacy mismatches |
 | `stim.names` | Feature names | Companion metadata | Direct mapping |
 | `stim.stimIdxs` | Stored values or `None` | Companion trial metadata | Missing legacy values warn; ordinal one-based values are available as a derived view |
 | `stim.condIdxs` | Numeric or string values | Companion trial metadata | Legacy AAD uses strings rather than numeric indices |
 | `stim.condNames` | Optional condition labels | Companion metadata | Some datasets encode labels directly in `condIdxs` |
-| `cndVersion` | Optional version metadata | Companion provenance | Public legacy datasets often omit it |
+| `cndVersion` | Optional numeric version metadata | Companion provenance | Numeric type is preserved; public legacy datasets often omit it |
 | Additional fields | `extra_fields` | Companion metadata | Preserved when MATLAB-serializable |
 
 ## Invariants
 
 - Neural trial `i` remains paired with stimulus trial `i`.
 - Trial order and original presentation order remain distinguishable.
-- Neural and stimulus clocks remain separate.
+- Neural and stimulus clocks remain separate in memory; a mismatch is a CND 1.0
+  conformance warning or strict-mode error.
 - Alignment is compared using duration in seconds, never raw sample count.
 - No unit conversion occurs without a declared input unit.
 - No coordinate conversion occurs without an explicit transform and scale.

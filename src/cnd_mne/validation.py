@@ -48,12 +48,17 @@ def validate_cnd(
     recording: CNDRecording,
     *,
     duration_tolerance_seconds: float | None = None,
+    strict_spec: bool = False,
 ) -> ValidationReport:
     """Validate dimensions, metadata, and neural/stimulus synchronization.
 
     Neural and stimulus lengths are compared in seconds, not samples, because
-    valid CND datasets can store them at different sampling frequencies.
+    observed legacy CND datasets can store them at different sampling rates.
+    CND 1.0 rate equality is reported as a warning, or an error in strict mode.
     """
+    if duration_tolerance_seconds is not None and duration_tolerance_seconds < 0:
+        raise ValueError("duration_tolerance_seconds must be non-negative")
+
     issues: list[ValidationIssue] = []
     neural = recording.neural
     stimulus = recording.stimulus
@@ -98,6 +103,17 @@ def validate_cnd(
                     "Length does not match neural trial count",
                 )
             )
+        elif neural.original_trial_positions is not None:
+            expected_positions = set(range(1, neural.n_trials + 1))
+            if set(neural.original_trial_positions) != expected_positions:
+                issues.append(
+                    _spec_issue(
+                        strict_spec,
+                        "invalid_trial_positions",
+                        "neural.original_trial_positions",
+                        "Expected a one-based permutation of all trial positions",
+                    )
+                )
         if (
             neural.channel_locations is not None
             and expected_channels is not None
@@ -118,12 +134,39 @@ def validate_cnd(
                     "MNE conversion will use generated channel names and no montage",
                 )
             )
+        elif neural.channel_names is not None and len(set(neural.channel_names)) != len(
+            neural.channel_names
+        ):
+            issues.append(
+                _error(
+                    "duplicate_channel_names",
+                    "neural.channel_locations",
+                    "Channel labels must be unique for MNE conversion",
+                )
+            )
         if neural.data_unit is None:
             issues.append(
                 _warning(
                     "missing_data_unit",
                     "neural.data_unit",
                     "MNE conversion requires an explicit physical unit",
+                )
+            )
+        if neural.cnd_version is None:
+            issues.append(
+                _warning(
+                    "missing_cnd_version",
+                    "neural.cnd_version",
+                    "Legacy file does not declare the CND specification version",
+                )
+            )
+        elif not isinstance(neural.cnd_version, (int, float, np.integer, np.floating)):
+            issues.append(
+                _spec_issue(
+                    strict_spec,
+                    "non_numeric_cnd_version",
+                    "neural.cnd_version",
+                    "CND 1.0 specifies cndVersion as a numeric scalar",
                 )
             )
         if neural.external_trials is not None:
@@ -167,6 +210,14 @@ def validate_cnd(
                     "Name count does not match feature count",
                 )
             )
+        if len(set(stimulus.names)) != len(stimulus.names):
+            issues.append(
+                _error(
+                    "duplicate_feature_names",
+                    "stimulus.names",
+                    "Stimulus feature-set names must be unique",
+                )
+            )
         expected_trials = stimulus.n_trials
         if stimulus.stimulus_indices is None:
             issues.append(
@@ -193,6 +244,24 @@ def validate_cnd(
                         f"Expected {expected_trials} trials, got {len(trials)}",
                     )
                 )
+            for trial_index, trial in enumerate(trials):
+                array = np.asarray(trial)
+                if array.ndim not in {1, 2}:
+                    issues.append(
+                        _error(
+                            "invalid_stimulus_shape",
+                            f"stimulus.features[{feature_index}][{trial_index}]",
+                            "Expected time or time x feature-dimension data",
+                        )
+                    )
+                elif array.shape[0] == 0:
+                    issues.append(
+                        _error(
+                            "empty_stimulus_trial",
+                            f"stimulus.features[{feature_index}][{trial_index}]",
+                            "Stimulus trial is empty",
+                        )
+                    )
         if (
             stimulus.condition_indices is not None
             and len(stimulus.condition_indices) != expected_trials
@@ -218,6 +287,25 @@ def validate_cnd(
                         f"Feature lengths differ: {lengths}",
                     )
                 )
+        if stimulus.cnd_version is None:
+            issues.append(
+                _warning(
+                    "missing_cnd_version",
+                    "stimulus.cnd_version",
+                    "Legacy file does not declare the CND specification version",
+                )
+            )
+        elif not isinstance(
+            stimulus.cnd_version, (int, float, np.integer, np.floating)
+        ):
+            issues.append(
+                _spec_issue(
+                    strict_spec,
+                    "non_numeric_cnd_version",
+                    "stimulus.cnd_version",
+                    "CND 1.0 specifies cndVersion as a numeric scalar",
+                )
+            )
 
     if neural is not None and stimulus is not None:
         if neural.n_trials != stimulus.n_trials:
@@ -229,7 +317,22 @@ def validate_cnd(
                     f"stimulus has {stimulus.n_trials}",
                 )
             )
-        else:
+        elif (
+            np.isfinite(neural.sfreq)
+            and neural.sfreq > 0
+            and np.isfinite(stimulus.sfreq)
+            and stimulus.sfreq > 0
+        ):
+            if not np.isclose(neural.sfreq, stimulus.sfreq, rtol=0, atol=0):
+                issues.append(
+                    _spec_issue(
+                        strict_spec,
+                        "sampling_frequency_mismatch",
+                        "$",
+                        "CND 1.0 requires neural and stimulus sampling rates to "
+                        f"match; found {neural.sfreq:g} and {stimulus.sfreq:g} Hz",
+                    )
+                )
             if duration_tolerance_seconds is None:
                 duration_tolerance_seconds = max(1 / neural.sfreq, 1 / stimulus.sfreq)
             for index in range(neural.n_trials):
@@ -260,3 +363,9 @@ def _error(code: str, path: str, message: str) -> ValidationIssue:
 
 def _warning(code: str, path: str, message: str) -> ValidationIssue:
     return ValidationIssue("warning", code, path, message)
+
+
+def _spec_issue(
+    strict_spec: bool, code: str, path: str, message: str
+) -> ValidationIssue:
+    return (_error if strict_spec else _warning)(code, path, message)
