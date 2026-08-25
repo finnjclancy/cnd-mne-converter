@@ -5,6 +5,7 @@ import json
 import mne
 import numpy as np
 import pytest
+from scipy.io import savemat
 
 from cnd_mne import CNDNeural, CNDRecording, verify_dataset, write_cnd
 from cnd_mne.cli import main
@@ -20,6 +21,7 @@ def test_verify_dataset_exercises_mne_and_round_trip(
     subject = report.subjects[0]
 
     assert report.passed
+    assert subject.outcome == "complete_pass"
     assert subject.mne_created
     assert subject.mne_shape_verified
     assert subject.stimulus_mne_views_verified
@@ -62,6 +64,7 @@ def test_verify_without_unit_performs_structural_checks_only(
     subject = report.subjects[0]
 
     assert report.passed
+    assert subject.outcome == "structural_pass"
     assert not report.round_trip_requested
     assert not report.mne_smoke_test_requested
     assert not subject.mne_created
@@ -82,8 +85,21 @@ def test_verify_reports_missing_dataset_and_subject_failure(
     report = verify_dataset(dataset, neural_unit="V")
 
     assert not report.passed
+    assert report.subjects[0].outcome == "source_read_failure"
     assert report.subjects[0].failure.startswith("CNDReadError:")
     assert report.to_dict()["summary"]["n_failed_subjects"] == 1
+
+
+def test_verify_distinguishes_invalid_cnd_from_unreadable_source(tmp_path) -> None:
+    savemat(
+        tmp_path / "dataSub1.mat",
+        {"eeg": {"data": np.ones((4, 2)), "fs": -1.0, "dataType": "EEG"}},
+    )
+
+    report = verify_dataset(tmp_path, neural_unit="V")
+
+    assert not report.passed
+    assert report.subjects[0].outcome == "validation_failure"
 
 
 def test_verify_reports_and_skips_empty_subject_placeholder(
@@ -156,5 +172,9 @@ def test_verifier_preserves_partial_trials_and_rejects_all_empty(tmp_path) -> No
     write_cnd(empty, tmp_path / "empty")
     empty_report = verify_dataset(tmp_path / "empty", neural_unit="V")
 
-    assert not empty_report.passed
-    assert empty_report.to_dict()["summary"]["n_failed_subjects"] == 1
+    assert empty_report.passed
+    assert empty_report.subjects[0].outcome == "empty_neural_data"
+    summary = empty_report.to_dict()["summary"]
+    assert summary["n_failed_subjects"] == 0
+    assert summary["n_empty_neural_files"] == 1
+    assert summary["outcome_counts"] == {"empty_neural_data": 1}

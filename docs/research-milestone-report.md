@@ -2,128 +2,105 @@
 
 ## Outcome
 
-The project now demonstrates bidirectional, metadata-aware interoperability
-between legacy CND MATLAB datasets and MNE-Python. The implementation has been
-tested against six public CND archives, not only synthetic arrays.
+The project provides bidirectional, metadata-aware interoperability between
+CND MATLAB datasets and MNE-Python. It has been exercised against every
+downloadable collection linked by the public CND catalogue, not only synthetic
+arrays. It is ready for technical review; unqualified scientific use still
+requires confirmation of units, coordinate semantics, and experiment-specific
+alignment.
 
-The current milestone is suitable for technical review and discussion with the
-CND and MNE maintainers. It is not yet suitable for unqualified scientific use
-because the public archives do not declare EEG units or coordinate units.
-
-## Implemented architecture
+## Architecture
 
 ```mermaid
 flowchart LR
-    MAT["CND MATLAB files"] --> READ["Parser"]
-    READ --> MODEL["Loss-aware CND model"]
-    MODEL --> VALIDATE["Tolerant or strict validator"]
-    MODEL --> EEG["MNE RawArray per EEG trial"]
-    MODEL --> STIM["MNE misc RawArray per stimulus feature"]
-    EEG --> ANALYSIS["MNE analysis and plotting"]
-    EEG --> TEMPLATE["Template-backed export"]
-    TEMPLATE --> MODEL
-    MODEL --> WRITE["Atomic CND writer"]
-    VERIFY["Full-dataset verifier"] --> READ
-    VERIFY --> EEG
-    VERIFY --> STIM
-    VERIFY --> TEMPLATE
+    MAT["CND v5 / v7.3 files"] <--> IO["Atomic reader / writer"]
+    IO <--> MODEL["Loss-aware CND model"]
+    MODEL --> VALIDATE["Tolerant or strict validation"]
+    MODEL <--> ADAPTER["MNE adapter"]
+    ADAPTER <--> RAW["One Raw per neural trial"]
+    MODEL --> STIM["Stimulus and external views"]
+    VERIFY["Dataset verifier"] --> IO
+    VERIFY --> ADAPTER
 ```
 
-The complete CND model remains alongside MNE objects. This is necessary because
-speech envelopes, word onsets, conditions, presentation order, external
-channels, and experiment-specific MATLAB fields do not all have standardized
-homes in a bare MNE `Raw` object.
+The CND model remains alongside the MNE objects because a bare `Raw` cannot
+losslessly hold separate stimulus clocks, variable-length trials, conditions,
+presentation order, rejected trials, external groups, and arbitrary MATLAB
+extension fields.
 
 ## Engineering delivered
 
-- MATLAB v5 and read-only MATLAB v7.3/HDF5 CND neural and stimulus reader.
-- Atomic writer with preflight protection against partial multi-file output.
-- Numeric `cndVersion` preservation.
-- Restoration of one-channel matrices squeezed by MATLAB/SciPy loading.
-- Explicit EEG unit conversion to MNE's volts.
-- Opt-in EEGLAB coordinate transform with an explicit scale to metres.
+- MATLAB v5 and v7.3/HDF5 neural and stimulus readers and atomic writers.
+- EEG plus the fNIRS HbO/HbR/HbT layout observed in the catalogue.
+- Explicit physical-unit conversion to MNE SI units; no unit guessing.
+- Opt-in EEGLAB coordinate transform requiring a scale to metres.
 - One MNE `RawArray` per variable-length neural trial.
-- Separate MNE `misc` views for arbitrary stimulus feature sets.
-- Optional concatenated neural view with MNE `BAD boundary`, `EDGE boundary`,
-  and `CND_TRIAL/*` annotations.
-- Template-backed MNE-to-CND export that preserves CND-only metadata.
-- Warnings or errors when MNE metadata has no standardized CND mapping.
+- Continuous stimulus views, opt-in sparse-event annotations, and explicitly
+  typed/scaled external-channel views.
+- Boundary-protected concatenated views for workflows requiring one timeline.
+- Template-backed MNE-to-CND export preserving CND-only metadata.
 - Tolerant legacy validation and strict CND 1.0 conformance validation.
-- Reproducible full-dataset JSON verifier and command-line interface.
-- A committed, regeneratable MATLAB CND fixture and FIF interoperability test.
-- Automated CI across Python 3.10, 3.12, and 3.13.
+- Reproducible full-dataset reports and explicit outcome classifications.
+- CI across Linux, macOS, Windows, supported Python versions, and minimum/latest
+  compatible MNE versions.
+- Release metadata, licence, citation, contribution and security guidance.
 
-## Experimental method and results
-
-The six downloaded datasets were read one subject at a time. For each subject,
-the verifier constructed MNE neural objects, compared every MNE sample with its
-CND source value, constructed MNE views of all stimulus features, computed a
-Welch PSD through MNE, exported through the source CND template, and compared
-the returned neural values and metadata.
+## Public-catalogue results
 
 | Measure | Result |
 | --- | ---: |
-| Public datasets | 6 |
-| Non-empty subject files | 142 |
-| Empty archive placeholders skipped and reported | 1 |
-| Neural trials | 3,008 |
-| Neural time samples | 38,380,840 |
-| Scalar neural values | 3,320,880,928 |
-| Failed subjects | 0 |
-| Non-finite MNE PSD checks | 0 |
+| Dataset report groups | 18 |
+| Non-empty neural CND files | 1,026 |
+| Complete end-to-end passes | 1,017 |
+| Structurally valid files with no neural samples | 8 |
+| Upstream source-read failures | 1 |
+| Parsed trials | 17,774 |
+| Neural time samples | 204,719,481 |
+| Scalar neural values | 11,293,937,597 |
 | Maximum CND-to-MNE numerical error | 0 |
-| Maximum MNE-to-CND numerical error | 0 |
-| Automated tests | 82 passing |
-| Statement coverage | 98.13% |
+| Maximum controlled round-trip numerical error | 0 |
+| Automated tests | 104 passing |
+| Statement coverage | 96.8% |
 
-The detailed evidence is stored under [results](results/README.md). The current
-automated suite contains synthetic, malformed-input, committed-MATLAB-fixture,
-MNE FIF, CLI, validation, and round-trip tests.
+Every complete pass includes MATLAB parsing, structural validation, MNE object
+construction, orientation and value comparison, all stimulus views, a finite
+MNE Welch PSD, a template-backed round trip, and CND metadata preservation.
 
-## What the result proves
+The eight all-empty BabyRhythm files also parse and round-trip but cannot run a
+brain-signal analysis. They are `empty_neural_data`, not converter errors. The
+only unreadable file is a physically truncated HDF5 file inside the published
+SparrKULee1 archive.
 
-- The implemented parser understands all observed layouts in the six public
-  archives.
-- Trial arrays are transposed into MNE correctly.
-- The converter retains variable trial lengths without padding.
-- Stimulus features remain on their own clocks and values.
-- MNE can perform a real spectral computation on the converted neural data.
-- Supported neural values and CND metadata survive the controlled round trip.
+## What this establishes
 
-## What the result does not prove
+- All layouts observed in the linked catalogue are understood or explicitly
+  classified.
+- Trial orientation, order, lengths, clocks, and numerical values are retained.
+- Supported CND metadata survives controlled MNE processing and export.
+- MNE can perform a real spectral computation on every non-empty passing file.
+- Empty and corrupt inputs are distinguished from converter defects.
 
-- The public EEG values are in volts. `V` was deliberately used as an identity
-  transform for software verification only.
-- The public electrode coordinates are in metres or a confirmed head frame.
-- Large duration discrepancies in Lalor are scientifically intended.
-- Every CND dataset in existence follows one of the six observed layouts.
-- MATLAB v7.3/HDF5 writing, MEG, fNIRS, and TRF result files are not supported
-  yet.
+## What remains scientifically unresolved
 
-## Questions for the supervisor / maintainers
+- Most public files do not declare their real EEG unit. The catalogue scan used
+  a recorded identity-test assumption to detect software mapping errors.
+- Coordinate unit, axes, origin, and frame need maintainer confirmation.
+- Padding, surplus samples, attended/unattended alternatives, and external
+  channel semantics need experiment-owner confirmation.
+- An independent MATLAB/NAPlib/Eelbrain comparison is needed for one reference
+  dataset using confirmed scientific units and coordinates.
+- The public API needs review by the CND and MNE maintainers before an upstream
+  proposal.
+- MEG, automatic alignment/resampling, lazy multi-gigabyte access, and TRF
+  result interchange remain separate future work.
 
-1. What physical EEG unit applies to each public dataset?
-2. Should `dataUnit` and coordinate-unit fields become required CND metadata?
-3. Are the long Lalor neural trials intentional, and how should padding or
-   surplus samples be represented?
-4. Should an upstream MNE reader return a specialized companion object, a list
-   of `Raw` objects, or a concatenated view with boundaries?
-5. Should stimulus features remain a companion collection, or should MNE gain
-   a domain-specific container for continuous naturalistic features?
-6. How should AAD attended and unattended stimulus files be paired?
+## Recommended next milestone
 
-## Reproduce locally
+Select one well-understood dataset and subject, confirm its units and montage,
+compare it independently with the original analysis workflow, and obtain
+maintainer sign-off on the resulting plots and values. Then open an MNE design
+discussion using the tested companion-object API as the concrete proposal.
 
-```bash
-uv sync --extra dev
-uv run pytest --cov=cnd_mne
-uv run ruff check .
-uv run ruff format --check .
-
-uv run cnd-mne verify-dataset /path/to/LalorNatSpeech \
-  --neural-unit V \
-  --output lalor-report.json
-```
-
-For scientific conversion, replace `V` only with a unit confirmed by the data
-owner or dataset documentation.
+Detailed evidence is under [full-dataset results](results/README.md), with the
+remaining decisions in [questions for maintainers](questions-for-maintainers.md)
+and the step-by-step [scientific validation checklist](scientific-validation-checklist.md).

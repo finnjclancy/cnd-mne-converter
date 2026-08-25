@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+import h5py
 import numpy as np
 import pytest
 from scipy.io import savemat
@@ -205,6 +206,33 @@ def test_writer_supports_overwrite_and_uncompressed_output(
     assert first == second
     assert read_cnd(tmp_path, subject=1).n_trials == 2
     assert read_cnd(tmp_path).n_trials == 2
+
+
+@pytest.mark.parametrize("compression", [True, False])
+def test_writer_supports_matlab_v73_round_trip(
+    sample_recording, tmp_path, compression
+) -> None:
+    paths = write_cnd(
+        sample_recording,
+        tmp_path,
+        mat_version="7.3",
+        compression=compression,
+    )
+
+    assert h5py.is_hdf5(paths.neural)
+    assert h5py.is_hdf5(paths.stimulus)
+    loaded = read_cnd(tmp_path)
+    assert loaded.neural.channel_names == ("Cz", "Pz")
+    assert loaded.stimulus.names == ("Envelope", "Word Onsets")
+    for expected, actual in zip(
+        sample_recording.neural.trials, loaded.neural.trials, strict=True
+    ):
+        np.testing.assert_array_equal(actual, expected)
+
+
+def test_writer_rejects_unknown_mat_version(sample_recording, tmp_path) -> None:
+    with pytest.raises(ValueError, match="mat_version"):
+        write_cnd(sample_recording, tmp_path, mat_version="8")
 
 
 def test_alternate_neural_variable_and_single_channel_are_supported(tmp_path) -> None:

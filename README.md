@@ -14,12 +14,14 @@ Experimental bidirectional conversion between Continuous-event Neural Data
 
 The tested research milestone provides:
 
-- MATLAB v5 and v7.3/HDF5 CND neural and stimulus readers;
+- MATLAB v5 and v7.3/HDF5 CND neural and stimulus readers and atomic writers;
 - a canonical model that preserves variable-length trials, continuous stimulus
   features, conditions, external channels, and unknown fields;
 - tolerant legacy validation and strict CND 1.0 conformance validation;
 - one MNE `RawArray` per CND neural trial;
 - MNE `misc` views of continuous stimulus features;
+- opt-in MNE annotations for explicitly selected sparse event features;
+- separate, explicitly typed and scaled MNE views of external channels;
 - explicit concatenation with protected trial-boundary annotations;
 - explicit conversion of declared EEG units to MNE's required volts;
 - fNIRS HbO/HbR conversion to MNE molar channels, with HbT retained as
@@ -32,16 +34,18 @@ The expanded public validation matrix covers every downloadable CND collection
 linked by the official catalogue: 1,026 neural CND files across 18 report
 groups. A total of 1,017 files pass structural, numerical, MNE PSD,
 stimulus-view, and controlled round-trip checks over 17,774 parsed trials and
-11.29 billion scalar neural values. The nine documented source-data failures
-are eight all-empty BabyRhythm files and one truncated HDF5 file in the
-authoritative SparrKULee1 ZIP. See the machine-generated
+11.29 billion scalar neural values. Eight additional BabyRhythm files convert
+and round-trip but contain no neural samples; they are classified as
+`empty_neural_data`, not converter failures. One truncated HDF5 file in the
+authoritative SparrKULee1 ZIP is the sole source-read failure. See the
+machine-generated
 [catalogue summary](docs/results/catalog-summary.json) and
 [verification notes](docs/results/README.md) for exact claims and limitations.
 
 The prototype currently supports EEG and the observed CND fNIRS layout.
-MATLAB v7.3/HDF5 writing, automatic unit discovery, automatic coordinate
-scaling, external-channel typing, MEG, TRF results, and arbitrary MNE
-modalities remain future work.
+Automatic unit discovery, automatic coordinate scaling, implicit external-
+channel typing, MEG, TRF results, lazy multi-gigabyte loading, and arbitrary
+MNE modalities remain future work.
 
 ## Why a companion object is necessary
 
@@ -77,12 +81,10 @@ uv run cnd-mne inspect /path/to/dataset/dataCND --subject 1
 ### CND to MNE
 
 ```python
-from cnd_mne import read_cnd, to_mne
-
-recording = read_cnd("/path/to/dataCND", subject=1)
+from cnd_mne import read_cnd_mne
 
 # Use uV only if the dataset documentation or data owner confirms it.
-mne_recording = to_mne(recording, neural_unit="uV")
+mne_recording = read_cnd_mne("/path/to/dataCND", subject=1, neural_unit="uV")
 first_trial = mne_recording.raws[0]
 first_trial.plot()
 ```
@@ -97,6 +99,14 @@ and no montage is created.
 # The speech envelope keeps the stimulus sampling rate and arbitrary units.
 envelope_trials = mne_recording.stimulus_raws("Speech Envelope Vectors")
 
+# Sparse word-onset vectors can be explicitly exposed as annotations.
+word_events = mne_recording.stimulus_annotations("Word Onsets")
+
+# External channels remain separate and require an explicit unit and type.
+mastoids = mne_recording.external_raws(
+    unit="uV", channel_names=("M1", "M2"), channel_types="eeg"
+)
+
 # This is opt-in. MNE boundary annotations protect every artificial join.
 continuous_view = mne_recording.concatenate()
 print(mne_recording.trial_slices)
@@ -105,14 +115,13 @@ print(mne_recording.trial_slices)
 ### MNE to CND
 
 ```python
-from cnd_mne import write_cnd
-
 # Filtering can modify the MNE values without changing trial length.
 mne_recording.raws[0].filter(1, 15)
 
 # The source template retains stimulus features and CND-only metadata.
-recording = mne_recording.to_cnd(output_unit="uV")
-paths = write_cnd(recording, "converted/dataCND", subject=1)
+paths = mne_recording.write_cnd(
+    "converted/dataCND", subject=1, output_unit="uV", mat_version="7.3"
+)
 ```
 
 Existing files are protected unless `overwrite=True` is passed. MNE cannot
@@ -164,6 +173,8 @@ retaining the block sizes needed to reconstruct the original CND layout.
 - [Public test-dataset release and checksums](docs/dataset-assets.md)
 - [Review of existing Python CND importers](docs/existing-importers.md)
 - [Implementation roadmap](docs/implementation-roadmap.md)
+- [Scientific validation checklist](docs/scientific-validation-checklist.md)
+- [Questions for CND and MNE maintainers](docs/questions-for-maintainers.md)
 - [Field mapping](docs/field-mapping.md)
 - [ADR 0001: canonical model](docs/decisions/0001-canonical-model.md)
 - [ADR 0002: trial representation](docs/decisions/0002-variable-length-trials.md)

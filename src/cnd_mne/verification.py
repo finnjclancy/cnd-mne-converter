@@ -15,6 +15,7 @@ from typing import Any
 import mne
 import numpy as np
 
+from .exceptions import CNDValidationError
 from .io import read_cnd
 from .mne import _unit_scale, to_mne
 from .model import CNDRecording
@@ -26,6 +27,7 @@ class SubjectVerification:
     """Verification evidence for one CND subject file."""
 
     subject: str
+    outcome: str
     neural_file: str
     stimulus_file: str | None
     n_trials: int
@@ -68,23 +70,14 @@ class DatasetVerification:
 
     @property
     def passed(self) -> bool:
-        """Whether every subject passed all requested checks."""
+        """Whether every file avoided a converter or source-read failure.
+
+        A structurally valid file containing zero neural samples is classified
+        separately as ``empty_neural_data``. It is not a converter failure,
+        although it cannot pass an analysis smoke test.
+        """
         return all(
-            not subject.validation_errors
-            and subject.failure is None
-            and (
-                self.neural_unit_assumption is None
-                or (
-                    subject.mne_created
-                    and subject.mne_shape_verified
-                    and subject.stimulus_mne_views_verified is not False
-                    and (not self.round_trip_requested or subject.round_trip_verified)
-                    and (
-                        not self.mne_smoke_test_requested
-                        or subject.mne_psd_finite is True
-                    )
-                )
-            )
+            subject.outcome in {"complete_pass", "structural_pass", "empty_neural_data"}
             for subject in self.subjects
         )
 
@@ -107,6 +100,7 @@ class DatasetVerification:
         max_round_trip_error = _optional_max(
             subject.round_trip_max_abs_error_source_units for subject in self.subjects
         )
+        outcome_counts = Counter(subject.outcome for subject in self.subjects)
         result["summary"] = {
             "passed": self.passed,
             "n_discovered_subject_files": len(self.subjects)
@@ -114,26 +108,13 @@ class DatasetVerification:
             "n_skipped_empty_files": len(self.skipped_empty_files),
             "n_subjects": len(self.subjects),
             "n_failed_subjects": sum(
-                subject.failure is not None
-                or bool(subject.validation_errors)
-                or (
-                    self.neural_unit_assumption is not None
-                    and (
-                        not subject.mne_created
-                        or not subject.mne_shape_verified
-                        or subject.stimulus_mne_views_verified is False
-                        or (
-                            self.round_trip_requested
-                            and not subject.round_trip_verified
-                        )
-                        or (
-                            self.mne_smoke_test_requested
-                            and subject.mne_psd_finite is not True
-                        )
-                    )
-                )
-                for subject in self.subjects
+                count
+                for outcome, count in outcome_counts.items()
+                if outcome
+                not in {"complete_pass", "structural_pass", "empty_neural_data"}
             ),
+            "n_empty_neural_files": outcome_counts["empty_neural_data"],
+            "outcome_counts": dict(sorted(outcome_counts.items())),
             "n_trials": sum(subject.n_trials for subject in self.subjects),
             "n_neural_samples": sum(
                 subject.n_neural_samples for subject in self.subjects
@@ -195,7 +176,7 @@ def verify_dataset(
         for file in files
     )
     return DatasetVerification(
-        schema_version=2,
+        schema_version=3,
         dataset_name=dataset_name or source.name,
         dataset_path=str(supplied_path),
         generated_at_utc=datetime.now(timezone.utc).isoformat(),
@@ -224,8 +205,10 @@ def _verify_subject(
 ) -> SubjectVerification:
     started = time.monotonic()
     subject = _subject_label(neural_file)
+    stage = "read"
     empty: dict[str, Any] = {
         "subject": subject,
+        "outcome": "source_read_failure",
         "neural_file": neural_file.name,
         "stimulus_file": None,
         "n_trials": 0,
@@ -250,6 +233,7 @@ def _verify_subject(
     }
     try:
         recording = read_cnd(neural_file)
+        stage = "validate"
         report = validate_cnd(recording, strict_spec=strict_spec)
         neural = recording.neural
         stimulus = recording.stimulus
@@ -280,11 +264,22 @@ def _verify_subject(
                 "max_duration_difference_seconds": _max_duration_difference(recording),
             }
         )
-        if report.errors or neural_unit is None:
+        if report.errors:
+            empty["outcome"] = "validation_failure"
+            return SubjectVerification(
+                **empty, elapsed_seconds=round(time.monotonic() - started, 6)
+            )
+        if neural_unit is None:
+            empty["outcome"] = (
+                "empty_neural_data"
+                if empty["n_neural_samples"] == 0
+                else "structural_pass"
+            )
             return SubjectVerification(
                 **empty, elapsed_seconds=round(time.monotonic() - started, 6)
             )
 
+        stage = "convert"
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             converted = to_mne(recording, neural_unit=neural_unit)
@@ -366,8 +361,27 @@ def _verify_subject(
                 "conversion_warnings": tuple(str(item.message) for item in caught),
             }
         )
+        if empty["n_neural_samples"] == 0:
+            empty["outcome"] = "empty_neural_data"
+        elif (
+            shape_verified
+            and stimulus_views_verified is not False
+            and (not round_trip or round_trip_verified)
+            and (not mne_smoke_test or psd_finite is True)
+        ):
+            empty["outcome"] = "complete_pass"
+        else:
+            empty["outcome"] = "verification_failure"
     except Exception as error:  # report each subject without aborting the matrix
         empty["failure"] = f"{type(error).__name__}: {error}"
+        if stage == "read" and isinstance(error, CNDValidationError):
+            empty["outcome"] = "validation_failure"
+        else:
+            empty["outcome"] = {
+                "read": "source_read_failure",
+                "validate": "validation_failure",
+                "convert": "conversion_failure",
+            }[stage]
     return SubjectVerification(
         **empty, elapsed_seconds=round(time.monotonic() - started, 6)
     )

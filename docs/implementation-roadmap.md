@@ -54,14 +54,24 @@ answer.
 - Named participant files, prefixed files, shared/subject stimuli, MATLAB MCOS
   strings, topomap layouts, sparse features, empty rejected trials, and
   one-sample squeeze cases covered by tests.
-- 1,017 full end-to-end passes; eight all-empty files and one upstream
-  truncated HDF5 file retained as documented source failures.
+- 1,017 full end-to-end passes; eight structurally convertible all-empty files
+  and one upstream truncated HDF5 source-read failure classified separately.
+
+## Phase 1d: production hardening — implemented
+
+- Atomic MATLAB v5 and v7.3/HDF5 writing.
+- Direct CND-to-MNE read and controlled MNE-to-CND write APIs.
+- Opt-in sparse-feature annotations and explicitly typed/scaled external views.
+- Verification outcome schema that separates empty data from converter errors.
+- Linux, macOS, Windows, minimum-MNE, and latest-MNE CI coverage.
+- Licence, citation, changelog, contribution, security, scientific validation,
+  and maintainer-decision documentation.
 
 ## Phase 3: broaden compatibility
 
-- Broader MATLAB v7.3/HDF5 layout coverage and optional v7.3 writing.
-- Explicit external-channel mapping for mastoids, EOG, EMG, and miscellaneous
-  channels.
+- Broader MATLAB v7.3/HDF5 layout coverage beyond the public catalogue.
+- Maintainer-approved default external-channel mapping; explicit opt-in MNE
+  views are implemented without guessing.
 - Padding-aware alignment metadata.
 - Optional, provenance-recorded resampling.
 - Optional concatenated `Raw` view with boundary annotations.

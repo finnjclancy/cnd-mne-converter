@@ -5,13 +5,21 @@ from __future__ import annotations
 import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Literal
 
 import mne
 import numpy as np
 
 from .exceptions import CNDAmbiguousUnitError, CNDUnsupportedError, CNDValidationError
-from .model import CNDNeural, CNDRecording, CNDStimulus, CNDTrialMetadata, CNDVersion
+from .model import (
+    CNDNeural,
+    CNDPaths,
+    CNDRecording,
+    CNDStimulus,
+    CNDTrialMetadata,
+    CNDVersion,
+)
 from .validation import validate_cnd
 
 MontagePolicy = Literal["none", "eeglab"]
@@ -113,15 +121,7 @@ class MNECNDRecording:
         stimulus = self.stimulus
         if stimulus is None:
             raise CNDValidationError("CND recording has no stimulus data")
-        if isinstance(feature, str):
-            try:
-                feature_index = stimulus.names.index(feature)
-            except ValueError as error:
-                raise KeyError(feature) from error
-        else:
-            feature_index = int(feature)
-            if not 0 <= feature_index < stimulus.n_features:
-                raise IndexError(feature_index)
+        feature_index = _feature_index(stimulus, feature)
         feature_name = stimulus.names[feature_index]
         output: list[mne.io.RawArray] = []
         for trial in stimulus.features[feature_index]:
@@ -147,6 +147,110 @@ class MNECNDRecording:
             output.append(mne.io.RawArray(array.T, info, verbose="ERROR"))
         return tuple(output)
 
+    def stimulus_annotations(
+        self,
+        feature: str | int,
+        *,
+        threshold: float = 0.0,
+        include_values: bool = False,
+    ) -> tuple[mne.Annotations, ...]:
+        """Create opt-in MNE annotations from a sparse stimulus feature.
+
+        Every sample whose absolute value exceeds ``threshold`` becomes a
+        zero-duration annotation at the stimulus clock time. This helper does
+        not claim that a feature is event-like; callers must select an
+        appropriate sparse feature such as a word-onset vector explicitly.
+        Multidimensional continuous features are rejected.
+        """
+        stimulus = self.stimulus
+        if stimulus is None:
+            raise CNDValidationError("CND recording has no stimulus data")
+        if not np.isfinite(threshold) or threshold < 0:
+            raise ValueError("threshold must be a finite non-negative number")
+        feature_index = _feature_index(stimulus, feature)
+        feature_name = stimulus.names[feature_index]
+        output: list[mne.Annotations] = []
+        for trial in stimulus.features[feature_index]:
+            values = np.asarray(trial, dtype=np.float64)
+            if values.ndim == 2 and values.shape[1] == 1:
+                values = values[:, 0]
+            if values.ndim != 1:
+                raise CNDValidationError(
+                    f"Stimulus feature {feature_name!r} must be one-dimensional "
+                    "to create annotations"
+                )
+            indices = np.flatnonzero(np.abs(values) > threshold)
+            if include_values:
+                descriptions = [
+                    f"CND_STIM/{feature_name}/{values[index]:g}" for index in indices
+                ]
+            else:
+                descriptions = [f"CND_STIM/{feature_name}"] * len(indices)
+            output.append(
+                mne.Annotations(
+                    onset=indices.astype(float) / stimulus.sfreq,
+                    duration=np.zeros(len(indices)),
+                    description=descriptions,
+                )
+            )
+        return tuple(output)
+
+    def external_raws(
+        self,
+        *,
+        unit: str,
+        channel_types: str | Sequence[str] = "misc",
+        channel_names: Sequence[str] | None = None,
+    ) -> tuple[mne.io.RawArray, ...]:
+        """Return explicit MNE views of CND external channels.
+
+        External channels are kept separate because public CND files do not
+        consistently declare their type, unit, or length relative to EEG.
+        The caller must provide the physical ``unit`` and may explicitly map
+        channel types (for example ``"eog"`` or ``("eeg", "eeg")``).
+        """
+        neural = self.cnd.neural
+        if neural is None or neural.external_trials is None:
+            raise CNDValidationError("CND recording has no external-channel data")
+        first = np.asarray(neural.external_trials[0])
+        if first.ndim != 2:
+            raise CNDValidationError("CND external trials must be time x channels")
+        n_channels = int(first.shape[1])
+        names = (
+            tuple(str(name) for name in channel_names)
+            if channel_names is not None
+            else tuple(f"EXT{index:03d}" for index in range(1, n_channels + 1))
+        )
+        types = (
+            (channel_types,) * n_channels
+            if isinstance(channel_types, str)
+            else tuple(channel_types)
+        )
+        if len(names) != n_channels or len(types) != n_channels:
+            raise CNDValidationError(
+                "external channel names/types must match the external channel count"
+            )
+        if len(set(names)) != len(names):
+            raise CNDValidationError("external channel names must be unique")
+        scale = _unit_scale(unit, "eeg")
+        info = mne.create_info(list(names), neural.sfreq, ch_types=list(types))
+        info["description"] = (
+            "Imported CND external channels; "
+            f"source_unit={_canonical_unit(unit, 'eeg')}; "
+            f"source_description={neural.external_description or 'unspecified'}"
+        )
+        output: list[mne.io.RawArray] = []
+        for index, trial in enumerate(neural.external_trials):
+            array = np.asarray(trial, dtype=np.float64)
+            if array.ndim != 2 or array.shape[1] != n_channels:
+                raise CNDValidationError(
+                    f"CND external trial {index} has inconsistent channel shape"
+                )
+            output.append(
+                mne.io.RawArray(array.T * scale, info.copy(), verbose="ERROR")
+            )
+        return tuple(output)
+
     def to_cnd(
         self,
         *,
@@ -160,6 +264,60 @@ class MNECNDRecording:
             output_unit=output_unit or self.neural_unit,
             on_unsupported_metadata=on_unsupported_metadata,
         )
+
+    def write_cnd(
+        self,
+        destination: str | Path,
+        *,
+        subject: str | int = 1,
+        output_unit: str | None = None,
+        overwrite: bool = False,
+        compression: bool = True,
+        mat_version: Literal["5", "7.3"] = "5",
+        on_unsupported_metadata: UnsupportedMetadataPolicy = "warn",
+    ) -> CNDPaths:
+        """Export edited MNE values and atomically write a CND directory."""
+        from .io import write_cnd
+
+        recording = self.to_cnd(
+            output_unit=output_unit,
+            on_unsupported_metadata=on_unsupported_metadata,
+        )
+        return write_cnd(
+            recording,
+            destination,
+            subject=subject,
+            overwrite=overwrite,
+            compression=compression,
+            mat_version=mat_version,
+        )
+
+
+def read_cnd_mne(
+    path: str | Path,
+    *,
+    stimulus_path: str | Path | None = None,
+    subject: str | int | None = None,
+    load_stimulus: bool = True,
+    neural_unit: str | None = None,
+    montage: MontagePolicy = "none",
+    coordinate_scale_to_meters: float | None = None,
+) -> MNECNDRecording:
+    """Read CND files and create their conservative MNE representation."""
+    from .io import read_cnd
+
+    recording = read_cnd(
+        path,
+        stimulus_path=stimulus_path,
+        subject=subject,
+        load_stimulus=load_stimulus,
+    )
+    return to_mne(
+        recording,
+        neural_unit=neural_unit,
+        montage=montage,
+        coordinate_scale_to_meters=coordinate_scale_to_meters,
+    )
 
 
 def to_mne(
@@ -395,6 +553,18 @@ def _channel_spec(neural: CNDNeural) -> tuple[tuple[str, ...], tuple[str, ...]]:
         names.extend(f"{prefix}{index:0{width}d}" for index in range(1, count + 1))
         channel_types.extend([mne_type] * count)
     return tuple(names), tuple(channel_types)
+
+
+def _feature_index(stimulus: CNDStimulus, feature: str | int) -> int:
+    if isinstance(feature, str):
+        try:
+            return stimulus.names.index(feature)
+        except ValueError as error:
+            raise KeyError(feature) from error
+    feature_index = int(feature)
+    if not 0 <= feature_index < stimulus.n_features:
+        raise IndexError(feature_index)
+    return feature_index
 
 
 def _make_montage(

@@ -14,7 +14,7 @@ datasets or their physical units.
 | SparrKULee2 | 56 non-empty | 1–5 | 64 / 64 Hz | 64 | 1 | MATLAB v7.3/HDF5; subject-specific stimulus files; two mastoid groups; one 0-byte subject placeholder in the official archive | All 56 usable subjects pass MNE and round-trip checks; placeholder is recorded and skipped |
 | Podcast fNIRS | 8 | 28 | 25 / 10 Hz | 48 (16 HbO, 16 HbR, 16 HbT) | 5 | Neural data is a 3 x 28 signal-type grid rather than a simple trial row; no channel locations; fixed neural windows exceed paired stimulus durations | Full MNE and template round-trip matrix passes after lossless block normalization; differences remain warnings |
 | ChildStories-Sysoeva | 52 | 2–3 | 500 / 500 Hz | 31 | 3 | Named `dataParticipant_ID.mat` and `dataStim_ID.mat` pairs; feature and condition labels stored as opaque MATLAB MCOS strings | All 52 participants pass after decoding MCOS labels from the embedded workspace |
-| BabyRhythm | 632 files / 158 participants | Up to 18 | 50 / 50 Hz | 58 | 4 | Four preprocessing variants per participant across adult, 4-, 7-, and 11-month cohorts; shared parent stimulus; retained rejected/empty trials | 624 files pass; 8 files for two 4-month participants contain no neural samples and are documented as unusable source files |
+| BabyRhythm | 632 files / 158 participants | Up to 18 | 50 / 50 Hz | 58 | 4 | Four preprocessing variants per participant across adult, 4-, 7-, and 11-month cohorts; shared parent stimulus; retained rejected/empty trials | 624 complete passes; 8 files for two 4-month participants convert but contain no neural samples |
 | VocodedSpeech | 13 | 25 | 128 / 128 Hz | 128 | 3 | Subject 13 absent while subject 14 is present; no channel locations; subject-specific stimuli | All 13 pairs pass with the numbering gap preserved |
 | FDSpeech L1 | 25 | 15 | 100 / 100 Hz | 64 | 12 | `pre_dataSubN.mat` names; feature streams often differ by one sample | All 25 subjects pass with 305 feature-length warnings retained |
 | FDSpeech L2 | 25 | 13–15 | 100 / 100 Hz | 64 | 12 | Fifteen files use a 66-entry topomap layout containing 64 channels plus `COMNT` and `SCALE`; one neural/stimulus trial-count mismatch | All 25 subjects pass after separating real channels from layout drawing helpers |
@@ -25,12 +25,14 @@ datasets or their physical units.
 Across all reports, 1,017 of 1,026 neural files pass their requested neural and
 stimulus MNE views, Welch PSD checks, and controlled round trips with zero
 numerical error under explicitly recorded identity-test assumptions. Eight
-all-empty BabyRhythm files and one truncated SparrKULee1 HDF5 file are source
-failures. See the [JSON evidence](results/README.md).
+all-empty BabyRhythm files convert and round-trip but cannot support analysis;
+one truncated SparrKULee1 HDF5 file is the sole source-read failure. See the
+[JSON evidence](results/README.md).
 
 ## Cross-dataset findings
 
-1. None of the six inspected legacy datasets declares `cndVersion`.
+1. The public files frequently omit `cndVersion`; the reports record every
+   occurrence rather than inventing a version.
 2. None declares an unambiguous EEG physical unit.
 3. CND 1.0 requires equal neural and stimulus sampling rates, but compatibility
    mode cannot enforce that rule because Alice stores them at a 10:1 ratio.

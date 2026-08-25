@@ -7,7 +7,7 @@ during the automated test suite?* It does not measure the percentage of CND
 datasets supported, prove scientific correctness, or show that every possible
 MATLAB representation has been observed.
 
-The current suite has 94 passing tests and 97.15% statement coverage. The
+The current suite has 104 passing tests and 96.8% statement coverage. The
 remaining statements are principally defensive guards that follow earlier
 validation, process-entry code, a filesystem race check, and fallback behavior
 for an environment in which package metadata is unavailable. Forcing these
@@ -25,8 +25,12 @@ must not fall below the floor.
 The fast CI suite checks valid and malformed MATLAB structures, validation
 rules, unit conversion, montage handling, variable-length trials, stimulus
 feature views, unsupported MNE metadata, atomic output, CLI behavior, and
-controlled CND-to-MNE-to-CND round trips. It runs on Python 3.10, 3.12, and
-3.13.
+controlled CND-to-MNE-to-CND round trips. CI runs on Linux, macOS, and Windows;
+Python 3.10, 3.12, and 3.13; and both the minimum and latest compatible MNE
+versions. The dependency range caps SciPy below 1.17 while MNE 1.8 remains
+supported because that MNE release imports a SciPy API removed in 1.17.
+Property-based tests also generate variable trial counts, lengths, channel
+counts, values, and supported physical units to exercise numerical round trips.
 
 ### 2. Committed interoperability fixtures
 
@@ -50,8 +54,10 @@ which bytes were tested.
 
 - A confirmed physical EEG unit for each legacy public dataset.
 - Confirmed coordinate units and coordinate-frame semantics.
-- Broader MATLAB v7.3/HDF5 layout coverage and v7.3 writing.
-- Explicit mappings for external channel types such as EOG and mastoids.
+- Independent MATLAB confirmation that generated v7.3 files load as intended;
+  Python read/write round trips are automated.
+- Maintainer-approved defaults for external channel types; explicit caller-
+  supplied mappings are implemented.
 - Padding-aware neural/stimulus alignment semantics.
 - Broader modality support beyond EEG and the observed fNIRS layout, including
   MEG, and TRF-result interchange.

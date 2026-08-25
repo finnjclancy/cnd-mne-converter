@@ -7,8 +7,9 @@ import re
 import tempfile
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
+import hdf5storage
 import numpy as np
 from scipy.io import loadmat, savemat
 from scipy.io.matlab import MatReadError
@@ -131,12 +132,17 @@ def write_cnd(
     subject: str | int = 1,
     overwrite: bool = False,
     compression: bool = True,
+    mat_version: Literal["5", "7.3"] = "5",
 ) -> CNDPaths:
     """Write a canonical recording as a CND directory.
 
     Writes ``dataSub<subject>.mat`` and/or ``dataStim.mat`` atomically. Existing
-    files are protected unless ``overwrite=True``.
+    files are protected unless ``overwrite=True``. ``mat_version="5"`` is the
+    broadly compatible default; ``mat_version="7.3"`` writes HDF5-backed MAT
+    files for recordings that would exceed the v5 size limit.
     """
+    if mat_version not in {"5", "7.3"}:
+        raise ValueError("mat_version must be '5' or '7.3'")
     report = validate_cnd(recording)
     report.raise_for_errors()
     output_dir = Path(destination).expanduser()
@@ -160,7 +166,9 @@ def write_cnd(
     if recording.neural is not None:
         neural_path = output_dir / f"dataSub{subject_label}.mat"
         payload = {recording.neural.variable_name: _neural_to_mat(recording.neural)}
-        _atomic_savemat(neural_path, payload, overwrite, compression)
+        _atomic_savemat(
+            neural_path, payload, overwrite, compression, mat_version=mat_version
+        )
     if recording.stimulus is not None:
         stimulus_path = output_dir / "dataStim.mat"
         _atomic_savemat(
@@ -168,6 +176,7 @@ def write_cnd(
             {"stim": _stimulus_to_mat(recording.stimulus)},
             overwrite,
             compression,
+            mat_version=mat_version,
         )
     return CNDPaths(neural_path, stimulus_path)
 
@@ -712,6 +721,8 @@ def _atomic_savemat(
     payload: dict[str, Any],
     overwrite: bool,
     compression: bool,
+    *,
+    mat_version: Literal["5", "7.3"] = "5",
 ) -> None:
     if path.exists() and not overwrite:
         raise FileExistsError(f"Refusing to overwrite {path}")
@@ -722,13 +733,25 @@ def _atomic_savemat(
     temporary = Path(handle.name)
     handle.close()
     try:
-        savemat(
-            temporary,
-            payload,
-            appendmat=False,
-            do_compression=compression,
-            long_field_names=True,
-        )
+        if mat_version == "5":
+            savemat(
+                temporary,
+                payload,
+                appendmat=False,
+                do_compression=compression,
+                long_field_names=True,
+            )
+        else:
+            hdf5storage.savemat(
+                temporary,
+                payload,
+                appendmat=False,
+                fmt="7.3",
+                oned_as="row",
+                store_python_metadata=False,
+                truncate_existing=True,
+                compress=compression,
+            )
         os.replace(temporary, path)
     except Exception:
         temporary.unlink(missing_ok=True)

@@ -13,7 +13,9 @@ from cnd_mne import (
     CNDUnsupportedError,
     CNDValidationError,
     from_mne,
+    read_cnd_mne,
     to_mne,
+    write_cnd,
 )
 from cnd_mne.mne import MNECNDRecording
 
@@ -161,6 +163,63 @@ def test_stimulus_features_have_independent_mne_views(sample_recording) -> None:
     np.testing.assert_array_equal(
         onsets[1].get_data()[0], sample_recording.stimulus.features[1][1]
     )
+
+
+def test_sparse_stimulus_feature_becomes_opt_in_annotations(sample_recording) -> None:
+    converted = to_mne(sample_recording)
+
+    annotations = converted.stimulus_annotations("Word Onsets")
+    valued = converted.stimulus_annotations(1, include_values=True)
+
+    assert len(annotations) == 2
+    assert annotations[0].onset.tolist() == [0.2]
+    assert annotations[1].onset.tolist() == [0.3]
+    assert annotations[0].description.tolist() == ["CND_STIM/Word Onsets"]
+    assert valued[0].description.tolist() == ["CND_STIM/Word Onsets/1"]
+
+
+def test_stimulus_annotation_policy_is_explicit(sample_recording) -> None:
+    converted = to_mne(sample_recording)
+    spectrogram = np.ones((10, 2))
+    stimulus = replace(
+        sample_recording.stimulus,
+        names=("Spectrogram",),
+        features=((spectrogram, spectrogram),),
+    )
+
+    with pytest.raises(ValueError, match="threshold"):
+        converted.stimulus_annotations(1, threshold=-1)
+    with pytest.raises(CNDValidationError, match="one-dimensional"):
+        to_mne(CNDRecording(sample_recording.neural, stimulus)).stimulus_annotations(0)
+
+
+def test_external_channels_have_explicit_separate_mne_views(sample_recording) -> None:
+    converted = to_mne(sample_recording)
+
+    external = converted.external_raws(
+        unit="uV",
+        channel_names=("M1", "M2"),
+        channel_types=("eeg", "eeg"),
+    )
+
+    assert [raw.n_times for raw in external] == [100, 120]
+    assert external[0].ch_names == ["M1", "M2"]
+    assert external[0].get_channel_types() == ["eeg", "eeg"]
+    np.testing.assert_allclose(external[1].get_data(), 2e-6)
+
+
+def test_external_channel_mapping_rejects_ambiguity(sample_recording) -> None:
+    converted = to_mne(sample_recording)
+    without_external = to_mne(
+        CNDRecording(replace(sample_recording.neural, external_trials=None))
+    )
+
+    with pytest.raises(CNDValidationError, match="no external"):
+        without_external.external_raws(unit="V")
+    with pytest.raises(CNDValidationError, match="match"):
+        converted.external_raws(unit="V", channel_names=("only-one",))
+    with pytest.raises(CNDValidationError, match="unique"):
+        converted.external_raws(unit="V", channel_names=("M", "M"))
 
 
 def test_multidimensional_stimulus_feature_becomes_multiple_channels(
@@ -388,3 +447,23 @@ def test_all_unsupported_mne_metadata_is_reported(sample_recording) -> None:
     assert "non-zero first sample" in message
 
     from_mne(raw, on_unsupported_metadata="ignore")
+
+
+def test_convenience_read_and_write_mne_api(sample_recording, tmp_path) -> None:
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    write_cnd(sample_recording, source)
+
+    converted = read_cnd_mne(source, neural_unit="uV")
+    paths = converted.write_cnd(
+        destination,
+        output_unit="uV",
+        mat_version="7.3",
+        on_unsupported_metadata="raise",
+    )
+
+    assert paths.neural.exists()
+    reloaded = read_cnd_mne(destination, neural_unit="uV")
+    np.testing.assert_allclose(
+        reloaded.raws[0].get_data(), converted.raws[0].get_data()
+    )

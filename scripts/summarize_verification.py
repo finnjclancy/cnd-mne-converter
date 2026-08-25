@@ -20,6 +20,37 @@ def _load_reports(directory: Path) -> list[tuple[Path, dict[str, Any]]]:
     return reports
 
 
+def _outcome(subject: dict[str, Any], report: dict[str, Any]) -> str:
+    """Return schema-v3 outcome, inferring it for historical schema-v2 reports."""
+    if "outcome" in subject:
+        return str(subject["outcome"])
+    if subject.get("failure"):
+        return (
+            "source_read_failure"
+            if not subject.get("mne_created")
+            else "conversion_failure"
+        )
+    if subject.get("validation_errors"):
+        return "validation_failure"
+    if subject.get("n_neural_samples", 0) == 0:
+        return "empty_neural_data"
+    if report.get("neural_unit_assumption") is None:
+        return "structural_pass"
+    checks = (
+        subject.get("mne_created")
+        and subject.get("mne_shape_verified")
+        and subject.get("stimulus_mne_views_verified") is not False
+        and (
+            not report.get("round_trip_requested") or subject.get("round_trip_verified")
+        )
+        and (
+            not report.get("mne_smoke_test_requested")
+            or subject.get("mne_psd_finite") is True
+        )
+    )
+    return "complete_pass" if checks else "verification_failure"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("reports", type=Path)
@@ -31,6 +62,12 @@ def main() -> int:
     for path, report in reports:
         summary = report["summary"]
         warnings.update(summary["warning_counts"])
+        outcomes = Counter(_outcome(subject, report) for subject in report["subjects"])
+        failures = sum(
+            count
+            for outcome, count in outcomes.items()
+            if outcome not in {"complete_pass", "structural_pass", "empty_neural_data"}
+        )
         scalar_values = sum(
             subject["n_neural_samples"] * subject["n_channels"]
             for subject in report["subjects"]
@@ -39,24 +76,25 @@ def main() -> int:
             {
                 "dataset": report["dataset_name"],
                 "report": path.name,
-                "passed": summary["passed"],
+                "passed": failures == 0,
                 "subject_files": summary["n_subjects"],
-                "failed_subject_files": summary["n_failed_subjects"],
+                "complete_passes": outcomes["complete_pass"],
+                "empty_neural_files": outcomes["empty_neural_data"],
+                "failed_subject_files": failures,
+                "outcome_counts": dict(sorted(outcomes.items())),
                 "trials": summary["n_trials"],
                 "neural_samples": summary["n_neural_samples"],
                 "scalar_neural_values": scalar_values,
             }
         )
     output = {
-        "schema_version": 1,
+        "schema_version": 2,
         "report_count": len(datasets),
         "dataset_reports": datasets,
         "totals": {
             "subject_files": sum(item["subject_files"] for item in datasets),
-            "passed_subject_files": sum(
-                item["subject_files"] - item["failed_subject_files"]
-                for item in datasets
-            ),
+            "passed_subject_files": sum(item["complete_passes"] for item in datasets),
+            "empty_neural_files": sum(item["empty_neural_files"] for item in datasets),
             "failed_subject_files": sum(
                 item["failed_subject_files"] for item in datasets
             ),

@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "report_count": 18,
   "dataset_reports": [
     {
@@ -7,7 +7,12 @@
       "report": "aad-kuleuven.json",
       "passed": true,
       "subject_files": 16,
+      "complete_passes": 16,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 16
+      },
       "trials": 128,
       "neural_samples": 1605632,
       "scalar_neural_values": 102760448
@@ -17,7 +22,12 @@
       "report": "alice-speech.json",
       "passed": true,
       "subject_files": 20,
+      "complete_passes": 20,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 20
+      },
       "trials": 240,
       "neural_samples": 7235400,
       "scalar_neural_values": 434124000
@@ -27,7 +37,12 @@
       "report": "baby-rhythm-11mo.json",
       "passed": true,
       "subject_files": 188,
+      "complete_passes": 188,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 188
+      },
       "trials": 3384,
       "neural_samples": 3440796,
       "scalar_neural_values": 199566168
@@ -35,9 +50,15 @@
     {
       "dataset": "BabyRhythm-4mo",
       "report": "baby-rhythm-4mo.json",
-      "passed": false,
+      "passed": true,
       "subject_files": 188,
-      "failed_subject_files": 8,
+      "complete_passes": 180,
+      "empty_neural_files": 8,
+      "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 180,
+        "empty_neural_data": 8
+      },
       "trials": 3368,
       "neural_samples": 2970148,
       "scalar_neural_values": 172268584
@@ -47,7 +68,12 @@
       "report": "baby-rhythm-7mo.json",
       "passed": true,
       "subject_files": 188,
+      "complete_passes": 188,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 188
+      },
       "trials": 3380,
       "neural_samples": 3327892,
       "scalar_neural_values": 193017736
@@ -57,7 +83,12 @@
       "report": "baby-rhythm-adults.json",
       "passed": true,
       "subject_files": 68,
+      "complete_passes": 68,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 68
+      },
       "trials": 1224,
       "neural_samples": 1265344,
       "scalar_neural_values": 73389952
@@ -67,7 +98,12 @@
       "report": "child-stories-sysoeva.json",
       "passed": true,
       "subject_files": 52,
+      "complete_passes": 52,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 52
+      },
       "trials": 148,
       "neural_samples": 19634275,
       "scalar_neural_values": 608662525
@@ -77,7 +113,12 @@
       "report": "dilibach.json",
       "passed": true,
       "subject_files": 20,
+      "complete_passes": 20,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 20
+      },
       "trials": 600,
       "neural_samples": 49816260,
       "scalar_neural_values": 3188240640
@@ -87,7 +128,12 @@
       "report": "fd-speech-l1.json",
       "passed": true,
       "subject_files": 25,
+      "complete_passes": 25,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 25
+      },
       "trials": 375,
       "neural_samples": 6129586,
       "scalar_neural_values": 392293504
@@ -97,7 +143,12 @@
       "report": "fd-speech-l2.json",
       "passed": true,
       "subject_files": 25,
+      "complete_passes": 25,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 25
+      },
       "trials": 373,
       "neural_samples": 6160937,
       "scalar_neural_values": 394299968
@@ -107,7 +158,12 @@
       "report": "lalor-natural-speech.json",
       "passed": true,
       "subject_files": 19,
+      "complete_passes": 19,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 19
+      },
       "trials": 380,
       "neural_samples": 9082303,
       "scalar_neural_values": 1162534784
@@ -117,7 +173,12 @@
       "report": "lalor-reversed-speech.json",
       "passed": true,
       "subject_files": 10,
+      "complete_passes": 10,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 10
+      },
       "trials": 200,
       "neural_samples": 4877834,
       "scalar_neural_values": 624362752
@@ -127,7 +188,12 @@
       "report": "music-imagery.json",
       "passed": true,
       "subject_files": 21,
+      "complete_passes": 21,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 21
+      },
       "trials": 1848,
       "neural_samples": 3331944,
       "scalar_neural_values": 213244416
@@ -137,7 +203,12 @@
       "report": "podcast-fnirs.json",
       "passed": true,
       "subject_files": 8,
+      "complete_passes": 8,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 8
+      },
       "trials": 224,
       "neural_samples": 688800,
       "scalar_neural_values": 33062400
@@ -147,7 +218,12 @@
       "report": "polyphonic-bach.json",
       "passed": true,
       "subject_files": 31,
+      "complete_passes": 31,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 31
+      },
       "trials": 993,
       "neural_samples": 48690985,
       "scalar_neural_values": 1168583640
@@ -157,7 +233,13 @@
       "report": "sparr-kulee1.json",
       "passed": false,
       "subject_files": 78,
+      "complete_passes": 77,
+      "empty_neural_files": 0,
       "failed_subject_files": 1,
+      "outcome_counts": {
+        "complete_pass": 77,
+        "source_read_failure": 1
+      },
       "trials": 372,
       "neural_samples": 20419425,
       "scalar_neural_values": 1306843200
@@ -167,7 +249,12 @@
       "report": "sparr-kulee2.json",
       "passed": true,
       "subject_files": 56,
+      "complete_passes": 56,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 56
+      },
       "trials": 212,
       "neural_samples": 12247727,
       "scalar_neural_values": 783854528
@@ -177,7 +264,12 @@
       "report": "vocoded-speech.json",
       "passed": true,
       "subject_files": 13,
+      "complete_passes": 13,
+      "empty_neural_files": 0,
       "failed_subject_files": 0,
+      "outcome_counts": {
+        "complete_pass": 13
+      },
       "trials": 325,
       "neural_samples": 3794193,
       "scalar_neural_values": 242828352
@@ -186,7 +278,8 @@
   "totals": {
     "subject_files": 1026,
     "passed_subject_files": 1017,
-    "failed_subject_files": 9,
+    "empty_neural_files": 8,
+    "failed_subject_files": 1,
     "trials": 17774,
     "neural_samples": 204719481,
     "scalar_neural_values": 11293937597,
