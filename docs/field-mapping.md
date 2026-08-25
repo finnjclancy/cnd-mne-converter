@@ -14,6 +14,7 @@ requiring confirmation.
 | Stored fNIRS values | Original values plus optional `data_unit` | Floating-point molar concentrations | Unit must be declared or explicitly supplied; `M`, `mM`, `uM`, and `nM` are supported |
 | `eeg.deviceName` | `CNDNeural.device_name` | Provenance in `Info["description"]` | MNE has no universal device-name field |
 | `eeg.chanlocs` | Tuple of field-preserving dictionaries | Optional `DigMontage` | EEGLAB axis mapping and scale to metres are opt-in |
+| 2D topomap-layout `chanlocs` | Real channel labels plus retained raw layout | Channel names only | `COMNT`/`SCALE` drawing helpers are excluded; global outline/mask data is preserved for export |
 | `eeg.extChan` | Separate external trial arrays, description, and additional fields | Retained in companion model, not added to neural `Raw` by default | Channel type, names, and units can be ambiguous |
 | `eeg.origTrialPosition` | One-based stored values | Retained in companion model | Never collapse into bare `Raw` |
 | `eeg.paddingStartSample` | Preserved verbatim | Not yet converted to annotations | Needed for precise stimulus onset alignment |
@@ -33,6 +34,8 @@ requiring confirmation.
 - Neural and stimulus clocks remain separate in memory; a mismatch is a CND 1.0
   conformance warning or strict-mode error.
 - Alignment is compared using duration in seconds, never raw sample count.
+- Legacy empty trials and unequal feature lengths are preserved with warnings;
+  strict validation rejects those CND conformance deviations.
 - No unit conversion occurs without a declared input unit.
 - No coordinate conversion occurs without an explicit transform and scale.
 - Unsupported information is reported rather than silently discarded.

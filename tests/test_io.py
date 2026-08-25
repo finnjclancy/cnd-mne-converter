@@ -442,3 +442,29 @@ def test_empty_neural_cells_retain_inferred_channel_count(tmp_path) -> None:
     )
 
     assert [trial.shape for trial in neural.trials] == [(3, 2), (0, 2)]
+
+
+def test_topomap_layout_uses_real_channels_and_preserves_raw_layout(tmp_path) -> None:
+    layout = {
+        "label": np.array(["Cz", "Pz", "COMNT", "SCALE"], dtype=object),
+        "pos": np.arange(8.0).reshape(4, 2),
+        "width": np.ones(4),
+        "height": np.ones(4) * 2,
+        "outline": np.array(["head", "nose"], dtype=object),
+        "mask": np.zeros((3, 2)),
+    }
+    neural = cnd_io._parse_neural(
+        {
+            "data": [np.ones((3, 2))],
+            "fs": 10.0,
+            "dataType": "EEG",
+            "chanlocs": layout,
+        },
+        "eeg",
+        tmp_path / "layout.mat",
+    )
+
+    assert neural.channel_names == ("Cz", "Pz")
+    assert neural.channel_locations[1]["pos"].tolist() == [2.0, 3.0]
+    assert neural.channel_locations_raw is layout
+    assert cnd_io._neural_to_mat(neural)["chanlocs"] is layout

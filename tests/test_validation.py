@@ -193,9 +193,14 @@ def test_paired_trial_and_feature_length_mismatches(sample_recording) -> None:
         condition_indices=(1,),
     )
 
+    unequal_recording = CNDRecording(stimulus=unequal_features)
     assert any(
         issue.code == "feature_length_mismatch"
-        for issue in validate_cnd(CNDRecording(stimulus=unequal_features)).errors
+        for issue in validate_cnd(unequal_recording).warnings
+    )
+    assert any(
+        issue.code == "feature_length_mismatch"
+        for issue in validate_cnd(unequal_recording, strict_spec=True).errors
     )
     recording = CNDRecording(sample_recording.neural, paired)
     assert any(

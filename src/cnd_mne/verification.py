@@ -340,6 +340,8 @@ def _verify_subject(
                 and converted_back.neural.extra_fields is neural.extra_fields
                 and converted_back.neural.external_fields is neural.external_fields
                 and converted_back.neural.channel_locations is neural.channel_locations
+                and converted_back.neural.channel_locations_raw
+                is neural.channel_locations_raw
                 and converted_back.neural.original_trial_positions
                 == neural.original_trial_positions
             )

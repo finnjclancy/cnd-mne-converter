@@ -27,6 +27,7 @@ class CNDNeural:
     device_name: str | None = None
     original_trial_positions: tuple[int, ...] | None = None
     channel_locations: tuple[dict[str, Any], ...] | None = None
+    channel_locations_raw: Any = None
     external_trials: tuple[Array, ...] | None = None
     external_description: str | None = None
     external_fields: dict[str, Any] = field(default_factory=dict)

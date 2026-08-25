@@ -16,6 +16,9 @@ downloads are tracked in the full-catalogue verification work.
 | Podcast fNIRS | 8 | 28 | 25 / 10 Hz | 48 (16 HbO, 16 HbR, 16 HbT) | 5 | Neural data is a 3 x 28 signal-type grid rather than a simple trial row; no channel locations; fixed neural windows exceed paired stimulus durations | Full MNE and template round-trip matrix passes after lossless block normalization; differences remain warnings |
 | ChildStories-Sysoeva | 52 | 2–3 | 500 / 500 Hz | 31 | 3 | Named `dataParticipant_ID.mat` and `dataStim_ID.mat` pairs; feature and condition labels stored as opaque MATLAB MCOS strings | All 52 participants pass after decoding MCOS labels from the embedded workspace |
 | BabyRhythm | 632 files / 158 participants | Up to 18 | 50 / 50 Hz | 58 | 4 | Four preprocessing variants per participant across adult, 4-, 7-, and 11-month cohorts; shared parent stimulus; retained rejected/empty trials | 624 files pass; 8 files for two 4-month participants contain no neural samples and are documented as unusable source files |
+| VocodedSpeech | 13 | 25 | 128 / 128 Hz | 128 | 3 | Subject 13 absent while subject 14 is present; no channel locations; subject-specific stimuli | All 13 pairs pass with the numbering gap preserved |
+| FDSpeech L1 | 25 | 15 | 100 / 100 Hz | 64 | 12 | `pre_dataSubN.mat` names; feature streams often differ by one sample | All 25 subjects pass with 305 feature-length warnings retained |
+| FDSpeech L2 | 25 | 13–15 | 100 / 100 Hz | 64 | 12 | Fifteen files use a 66-entry topomap layout containing 64 channels plus `COMNT` and `SCALE`; one neural/stimulus trial-count mismatch | All 25 subjects pass after separating real channels from layout drawing helpers |
 
 All 142 non-empty subject files parsed without structural validation errors.
 Across 3,008 trials, all neural and stimulus MNE views, Welch PSD smoke checks, and controlled
@@ -53,6 +56,13 @@ scientific assertion about the source unit. See the [JSON evidence](results/READ
     and reported as warnings; strict CND validation rejects them. Eight 4-month
     files (participants 8 and 13, four preprocessing variants each) contain no
     neural samples at all, so analysis is impossible without fabricating data.
+13. Feature extraction can create one-sample boundary differences. FDSpeech's
+    feature streams are preserved independently; tolerant mode warns and
+    strict mode rejects instead of silently truncating or padding them.
+14. A `chanlocs` field is not always an EEGLAB channel-structure array.
+    FDSpeech L2 embeds a 2D topomap layout with global outline/mask fields and
+    two drawing helpers. The converter exposes the 64 EEG labels to MNE and
+    retains the complete raw layout for CND export.
 
 ## Test levels
 

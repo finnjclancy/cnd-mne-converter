@@ -257,7 +257,9 @@ def _find_neural_key(variables: Mapping[str, Any]) -> str | None:
 def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
     if not isinstance(value, Mapping):
         raise CNDReadError(f"{source}:{variable_name} is not a MATLAB structure")
-    channel_locations = _parse_channel_locations(value.get("chanlocs"))
+    channel_value = value.get("chanlocs")
+    channel_locations = _parse_channel_locations(channel_value)
+    channel_locations_raw = channel_value if _is_topomap_layout(channel_value) else None
     try:
         trials, signal_types, channels_per_signal_type = _parse_neural_trials(
             value,
@@ -344,6 +346,7 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
         device_name=_optional_string(value.get("deviceName")),
         original_trial_positions=original_positions,
         channel_locations=channel_locations,
+        channel_locations_raw=channel_locations_raw,
         external_trials=external_trials,
         external_description=external_description,
         external_fields=external_fields,
@@ -522,6 +525,24 @@ def _parse_channel_locations(value: Any) -> tuple[dict[str, Any], ...] | None:
     if value is None:
         return None
     if isinstance(value, Mapping):
+        if _is_topomap_layout(value):
+            labels = np.atleast_1d(value["label"]).ravel()
+            positions = np.asarray(value["pos"])
+            locations: list[dict[str, Any]] = []
+            for index, label in enumerate(labels):
+                name = str(label)
+                if name.upper() in {"COMNT", "SCALE"}:
+                    continue
+                location: dict[str, Any] = {
+                    "labels": name,
+                    "pos": np.asarray(positions[index]),
+                }
+                for key in ("width", "height"):
+                    values = np.atleast_1d(value.get(key)).ravel()
+                    if values.size == labels.size:
+                        location[key] = values[index]
+                locations.append(location)
+            return tuple(locations)
         lengths = [
             np.atleast_1d(item).size
             for item in value.values()
@@ -553,6 +574,14 @@ def _parse_channel_locations(value: Any) -> tuple[dict[str, Any], ...] | None:
     raise CNDReadError("Could not interpret chanlocs structure")
 
 
+def _is_topomap_layout(value: Any) -> bool:
+    if not isinstance(value, Mapping) or not {"label", "pos"} <= set(value):
+        return False
+    labels = np.atleast_1d(value["label"]).ravel()
+    positions = np.asarray(value["pos"])
+    return positions.ndim == 2 and positions.shape[0] == labels.size
+
+
 def _neural_to_mat(neural: CNDNeural) -> dict[str, Any]:
     result = dict(neural.extra_fields)
     result.update(
@@ -567,7 +596,11 @@ def _neural_to_mat(neural: CNDNeural) -> dict[str, Any]:
     if neural.original_trial_positions is not None:
         result["origTrialPosition"] = np.asarray(neural.original_trial_positions)
     if neural.channel_locations is not None:
-        result["chanlocs"] = _struct_array(neural.channel_locations)
+        result["chanlocs"] = (
+            neural.channel_locations_raw
+            if neural.channel_locations_raw is not None
+            else _struct_array(neural.channel_locations)
+        )
     if neural.external_trials is not None:
         external = dict(neural.external_fields)
         external.update(

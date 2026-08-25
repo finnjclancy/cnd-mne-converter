@@ -306,7 +306,8 @@ def validate_cnd(
             ]
             if lengths and len(set(lengths)) != 1:
                 issues.append(
-                    _error(
+                    _spec_issue(
+                        strict_spec,
                         "feature_length_mismatch",
                         f"stimulus.trial[{trial_index}]",
                         f"Feature lengths differ: {lengths}",
