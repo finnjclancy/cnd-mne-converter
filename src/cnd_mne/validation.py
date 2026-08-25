@@ -237,7 +237,8 @@ def validate_cnd(
             )
         if len(set(stimulus.names)) != len(stimulus.names):
             issues.append(
-                _error(
+                _spec_issue(
+                    strict_spec,
                     "duplicate_feature_names",
                     "stimulus.names",
                     "Stimulus feature-set names must be unique",
@@ -281,7 +282,8 @@ def validate_cnd(
                     )
                 elif array.shape[0] == 0:
                     issues.append(
-                        _error(
+                        _spec_issue(
+                            strict_spec,
                             "empty_stimulus_trial",
                             f"stimulus.features[{feature_index}][{trial_index}]",
                             "Stimulus trial is empty",

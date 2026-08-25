@@ -1,0 +1,513 @@
+{
+  "schema_version": 1,
+  "osf_api_endpoint": "https://api.osf.io/v2/nodes/bjdh6/files/osfstorage/69ca7d5a9c90fbabcb73fcb1/",
+  "file_count": 63,
+  "total_bytes": 5692180153,
+  "downloaded_and_verified": true,
+  "files": [
+    {
+      "path": "dataSub24.mat",
+      "size": 128773518,
+      "sha256": "be96ec9e9f5b76f15036f5203a9570201659df5cccd2f69f6d55e5442db648f8",
+      "download": "https://osf.io/download/6a396a69256fb850c3c22ced/",
+      "api": "https://api.osf.io/v2/files/6a396a69256fb850c3c22ced/",
+      "verified_sha256": "be96ec9e9f5b76f15036f5203a9570201659df5cccd2f69f6d55e5442db648f8"
+    },
+    {
+      "path": "dataSub19.mat",
+      "size": 53418542,
+      "sha256": "5a2f402851d9fe2c0196c3b9b407f127126bd1383f2e6f760d9f9528da7d0344",
+      "download": "https://osf.io/download/6a396a5658aad8582dc22d8d/",
+      "api": "https://api.osf.io/v2/files/6a396a5658aad8582dc22d8d/",
+      "verified_sha256": "5a2f402851d9fe2c0196c3b9b407f127126bd1383f2e6f760d9f9528da7d0344"
+    },
+    {
+      "path": "dataStim17.mat",
+      "size": 77277138,
+      "sha256": "d29eb6628930f8eeff1b079a480d6ba05cb5e8fe6c25334525db0406d321a5d5",
+      "download": "https://osf.io/download/6a396a7aa308864cf6c22cba/",
+      "api": "https://api.osf.io/v2/files/6a396a7aa308864cf6c22cba/",
+      "verified_sha256": "d29eb6628930f8eeff1b079a480d6ba05cb5e8fe6c25334525db0406d321a5d5"
+    },
+    {
+      "path": "dataSub13.mat",
+      "size": 113907940,
+      "sha256": "f0843892a89f92e12ebe576f10ab4b3cd5e9d04e9d92cd15df45fbf042c6c755",
+      "download": "https://osf.io/download/6a396a7fcd0deed89bc22db6/",
+      "api": "https://api.osf.io/v2/files/6a396a7fcd0deed89bc22db6/",
+      "verified_sha256": "f0843892a89f92e12ebe576f10ab4b3cd5e9d04e9d92cd15df45fbf042c6c755"
+    },
+    {
+      "path": "dataSub10.mat",
+      "size": 137718173,
+      "sha256": "2c26c5cfa13d9fb1f1c6363ee8ff1aa221e6ae958aae502386406e0bfec72ef3",
+      "download": "https://osf.io/download/6a396a69413228ff3528e543/",
+      "api": "https://api.osf.io/v2/files/6a396a69413228ff3528e543/",
+      "verified_sha256": "2c26c5cfa13d9fb1f1c6363ee8ff1aa221e6ae958aae502386406e0bfec72ef3"
+    },
+    {
+      "path": "dataSub6.mat",
+      "size": 106011614,
+      "sha256": "ac70e7b042a3097d2f36ff7cf16025e896653c513197071dcd2cf59aa1e964fa",
+      "download": "https://osf.io/download/6a396a7e58aad8582dc22db0/",
+      "api": "https://api.osf.io/v2/files/6a396a7e58aad8582dc22db0/",
+      "verified_sha256": "ac70e7b042a3097d2f36ff7cf16025e896653c513197071dcd2cf59aa1e964fa"
+    },
+    {
+      "path": "dataSub1.mat",
+      "size": 63514590,
+      "sha256": "19c8122f142f993880e09690789514845f4dbb3f5a65a13e8b70fd6a921d18d1",
+      "download": "https://osf.io/download/6a396a5dc6b68ce6c4253b2f/",
+      "api": "https://api.osf.io/v2/files/6a396a5dc6b68ce6c4253b2f/",
+      "verified_sha256": "19c8122f142f993880e09690789514845f4dbb3f5a65a13e8b70fd6a921d18d1"
+    },
+    {
+      "path": "dataSub26.mat",
+      "size": 146307673,
+      "sha256": "97712b48116b91bc0fa9995409fada554f166ff7b389348a80f72d6814d2db96",
+      "download": "https://osf.io/download/6a396a80cd0deed89bc22db8/",
+      "api": "https://api.osf.io/v2/files/6a396a80cd0deed89bc22db8/",
+      "verified_sha256": "97712b48116b91bc0fa9995409fada554f166ff7b389348a80f72d6814d2db96"
+    },
+    {
+      "path": "dataStim25.mat",
+      "size": 79538053,
+      "sha256": "4dbfdb084a1a95c1ad0c90eb01693c099c30f49a402fab121b046df9dc405f0b",
+      "download": "https://osf.io/download/6a396a64c6b68ce6c4253b34/",
+      "api": "https://api.osf.io/v2/files/6a396a64c6b68ce6c4253b34/",
+      "verified_sha256": "4dbfdb084a1a95c1ad0c90eb01693c099c30f49a402fab121b046df9dc405f0b"
+    },
+    {
+      "path": "dataSub9.mat",
+      "size": 143920721,
+      "sha256": "b349e1094cd74daa988f4294d3087a9c25977ac82a313ee71311de7c48da241e",
+      "download": "https://osf.io/download/6a396a6997100e789d253b1a/",
+      "api": "https://api.osf.io/v2/files/6a396a6997100e789d253b1a/",
+      "verified_sha256": "b349e1094cd74daa988f4294d3087a9c25977ac82a313ee71311de7c48da241e"
+    },
+    {
+      "path": "dataStim26.mat",
+      "size": 78313277,
+      "sha256": "414148953fb071bc4faf7da228a416a4d0e46ac85206aeb73d695fac16945b2e",
+      "download": "https://osf.io/download/6a396a7b7d7a196cc1253b64/",
+      "api": "https://api.osf.io/v2/files/6a396a7b7d7a196cc1253b64/",
+      "verified_sha256": "414148953fb071bc4faf7da228a416a4d0e46ac85206aeb73d695fac16945b2e"
+    },
+    {
+      "path": "dataStim12.mat",
+      "size": 77537350,
+      "sha256": "91a246a8e9a14c297941ccb26b57040f9687eda4ffa9d3ee4d1e70623fb0e8a4",
+      "download": "https://osf.io/download/6a396a7b58aad8582dc22dae/",
+      "api": "https://api.osf.io/v2/files/6a396a7b58aad8582dc22dae/",
+      "verified_sha256": "91a246a8e9a14c297941ccb26b57040f9687eda4ffa9d3ee4d1e70623fb0e8a4"
+    },
+    {
+      "path": "dataSub15.mat",
+      "size": 164949968,
+      "sha256": "f91dc934a50fcab2adc21c80086feb2771107e5794cb92522073e361cdcba6a5",
+      "download": "https://osf.io/download/6a396a694abbc6be4228e4f1/",
+      "api": "https://api.osf.io/v2/files/6a396a694abbc6be4228e4f1/",
+      "verified_sha256": "f91dc934a50fcab2adc21c80086feb2771107e5794cb92522073e361cdcba6a5"
+    },
+    {
+      "path": "dataSub16.mat",
+      "size": 48701567,
+      "sha256": "435e577a84002fc4bdf4346ec5c3eeecb886bb99734106517f0c18ee4422ede2",
+      "download": "https://osf.io/download/6a396a6c41c339357228e514/",
+      "api": "https://api.osf.io/v2/files/6a396a6c41c339357228e514/",
+      "verified_sha256": "435e577a84002fc4bdf4346ec5c3eeecb886bb99734106517f0c18ee4422ede2"
+    },
+    {
+      "path": "dataSub8.mat",
+      "size": 119306169,
+      "sha256": "cbffd40a45f4dd781d0030e06c787f4c196b45402005446b37bb58bef955884d",
+      "download": "https://osf.io/download/6a396a807d7a196cc1253b68/",
+      "api": "https://api.osf.io/v2/files/6a396a807d7a196cc1253b68/",
+      "verified_sha256": "cbffd40a45f4dd781d0030e06c787f4c196b45402005446b37bb58bef955884d"
+    },
+    {
+      "path": "dataSub21.mat",
+      "size": 147531056,
+      "sha256": "796be859f7cf4a05abf21d176a78a80fd749132fe0dd4ec154909772156e86c9",
+      "download": "https://osf.io/download/6a396a802ecdd06784c22ceb/",
+      "api": "https://api.osf.io/v2/files/6a396a802ecdd06784c22ceb/",
+      "verified_sha256": "796be859f7cf4a05abf21d176a78a80fd749132fe0dd4ec154909772156e86c9"
+    },
+    {
+      "path": "dataStim24.mat",
+      "size": 77812535,
+      "sha256": "4ad26ac4e244556279030520392f2729bc6243b841c76b724364372bd67f80db",
+      "download": "https://osf.io/download/6a396a635cc90056fdc22e73/",
+      "api": "https://api.osf.io/v2/files/6a396a635cc90056fdc22e73/",
+      "verified_sha256": "4ad26ac4e244556279030520392f2729bc6243b841c76b724364372bd67f80db"
+    },
+    {
+      "path": "dataStim6.mat",
+      "size": 73132146,
+      "sha256": "bf93b38c3c9eafa5a9d0988c2fe11c7dc45c32df797a201c192e44461fff17ed",
+      "download": "https://osf.io/download/6a396a792ecdd06784c22ce3/",
+      "api": "https://api.osf.io/v2/files/6a396a792ecdd06784c22ce3/",
+      "verified_sha256": "bf93b38c3c9eafa5a9d0988c2fe11c7dc45c32df797a201c192e44461fff17ed"
+    },
+    {
+      "path": "dataStim4.mat",
+      "size": 80409686,
+      "sha256": "0e33263b22d1c5a25e2d84da8826035291f9d1af3087c82286f0bdd9037dcea5",
+      "download": "https://osf.io/download/6a396a7b413228ff3528e550/",
+      "api": "https://api.osf.io/v2/files/6a396a7b413228ff3528e550/",
+      "verified_sha256": "0e33263b22d1c5a25e2d84da8826035291f9d1af3087c82286f0bdd9037dcea5"
+    },
+    {
+      "path": "dataSub28.mat",
+      "size": 109182455,
+      "sha256": "86819d1193eb0057159e95bfccde58237a78f023cf1b1a6d7c552cc34d9e017d",
+      "download": "https://osf.io/download/6a396a6897100e789d253b18/",
+      "api": "https://api.osf.io/v2/files/6a396a6897100e789d253b18/",
+      "verified_sha256": "86819d1193eb0057159e95bfccde58237a78f023cf1b1a6d7c552cc34d9e017d"
+    },
+    {
+      "path": "dataStim31.mat",
+      "size": 81171870,
+      "sha256": "184bbdf7e2b9ad261e335186477ffc15982991db550389be57e3497fd8e96ba5",
+      "download": "https://osf.io/download/6a396a7b2cf89ab14f28e480/",
+      "api": "https://api.osf.io/v2/files/6a396a7b2cf89ab14f28e480/",
+      "verified_sha256": "184bbdf7e2b9ad261e335186477ffc15982991db550389be57e3497fd8e96ba5"
+    },
+    {
+      "path": "dataStim13.mat",
+      "size": 76285900,
+      "sha256": "dfd050da1b7a2e0f6f9ca1c44e44b69bbde8afa7b43415d51066fcd94c40bd54",
+      "download": "https://osf.io/download/6a396a7997100e789d253b2e/",
+      "api": "https://api.osf.io/v2/files/6a396a7997100e789d253b2e/",
+      "verified_sha256": "dfd050da1b7a2e0f6f9ca1c44e44b69bbde8afa7b43415d51066fcd94c40bd54"
+    },
+    {
+      "path": "dataStim28.mat",
+      "size": 76730119,
+      "sha256": "78c554b173152e8285c4e98a1668ffa30d17688a66c582f662877a28f9a9a483",
+      "download": "https://osf.io/download/6a396a61cd0deed89bc22d97/",
+      "api": "https://api.osf.io/v2/files/6a396a61cd0deed89bc22d97/",
+      "verified_sha256": "78c554b173152e8285c4e98a1668ffa30d17688a66c582f662877a28f9a9a483"
+    },
+    {
+      "path": "dataStim19.mat",
+      "size": 81665904,
+      "sha256": "d5514b1d8f48e65fe0235cf6cfb3839904b94f7d85b02453643b0eeb6bb8fd39",
+      "download": "https://osf.io/download/6a396a632ecdd06784c22cda/",
+      "api": "https://api.osf.io/v2/files/6a396a632ecdd06784c22cda/",
+      "verified_sha256": "d5514b1d8f48e65fe0235cf6cfb3839904b94f7d85b02453643b0eeb6bb8fd39"
+    },
+    {
+      "path": "dataSub31.mat",
+      "size": 105052007,
+      "sha256": "7731265934b3fd6945c8f8aa37b1273b76acb351903a7c237e6b12da9f9443e4",
+      "download": "https://osf.io/download/6a396a66413228ff3528e541/",
+      "api": "https://api.osf.io/v2/files/6a396a66413228ff3528e541/",
+      "verified_sha256": "7731265934b3fd6945c8f8aa37b1273b76acb351903a7c237e6b12da9f9443e4"
+    },
+    {
+      "path": "dataSub11.mat",
+      "size": 122829569,
+      "sha256": "6910d52e466aa03b4437c8c9133389a3110bb528cabf2e5fdebffd938a845984",
+      "download": "https://osf.io/download/6a396a807a8af049b4253b8e/",
+      "api": "https://api.osf.io/v2/files/6a396a807a8af049b4253b8e/",
+      "verified_sha256": "6910d52e466aa03b4437c8c9133389a3110bb528cabf2e5fdebffd938a845984"
+    },
+    {
+      "path": "dataSub7.mat",
+      "size": 108215147,
+      "sha256": "d5a9c299880be2ab27a69b01cd413a3dd22837d101a03e71a213b0515cb1e9af",
+      "download": "https://osf.io/download/6a396a7ed949ab22d928e49e/",
+      "api": "https://api.osf.io/v2/files/6a396a7ed949ab22d928e49e/",
+      "verified_sha256": "d5a9c299880be2ab27a69b01cd413a3dd22837d101a03e71a213b0515cb1e9af"
+    },
+    {
+      "path": "dataStim23.mat",
+      "size": 83786409,
+      "sha256": "9ff61be25e0a8b81fdcf2c491e9bd38a54f33fe02a0b59bf2331238f3170be08",
+      "download": "https://osf.io/download/6a396a7b77a1cc910828e49a/",
+      "api": "https://api.osf.io/v2/files/6a396a7b77a1cc910828e49a/",
+      "verified_sha256": "9ff61be25e0a8b81fdcf2c491e9bd38a54f33fe02a0b59bf2331238f3170be08"
+    },
+    {
+      "path": "dataStim14.mat",
+      "size": 80644623,
+      "sha256": "2f5578a72f312aed1a709388cded858cc04158b52214415e59953689f9780507",
+      "download": "https://osf.io/download/6a396a7b97100e789d253b33/",
+      "api": "https://api.osf.io/v2/files/6a396a7b97100e789d253b33/",
+      "verified_sha256": "2f5578a72f312aed1a709388cded858cc04158b52214415e59953689f9780507"
+    },
+    {
+      "path": "dataSub17.mat",
+      "size": 59801777,
+      "sha256": "cacaeed158cf3cd42ebb63d00aad4b08d9c852515ff6728e653df65a631adc1d",
+      "download": "https://osf.io/download/6a396a712cf89ab14f28e479/",
+      "api": "https://api.osf.io/v2/files/6a396a712cf89ab14f28e479/",
+      "verified_sha256": "cacaeed158cf3cd42ebb63d00aad4b08d9c852515ff6728e653df65a631adc1d"
+    },
+    {
+      "path": "dataStim15.mat",
+      "size": 82224750,
+      "sha256": "3d327488634ffbccff6f01745d740e055397504e2a25e329a2bef8d6ee6078f9",
+      "download": "https://osf.io/download/6a396a63413228ff3528e53c/",
+      "api": "https://api.osf.io/v2/files/6a396a63413228ff3528e53c/",
+      "verified_sha256": "3d327488634ffbccff6f01745d740e055397504e2a25e329a2bef8d6ee6078f9"
+    },
+    {
+      "path": "dataStim20.mat",
+      "size": 81314447,
+      "sha256": "f85f253ea7438c78583202c91da114bec76010de454a13d9599906fe7108fa2d",
+      "download": "https://osf.io/download/6a396a63413228ff3528e53e/",
+      "api": "https://api.osf.io/v2/files/6a396a63413228ff3528e53e/",
+      "verified_sha256": "f85f253ea7438c78583202c91da114bec76010de454a13d9599906fe7108fa2d"
+    },
+    {
+      "path": "dataStim2.mat",
+      "size": 77207950,
+      "sha256": "9292314a406226f602496edb0268ea70afdb077c58bfe574e7632a639f9a5a9f",
+      "download": "https://osf.io/download/6a396a62cd0deed89bc22d9b/",
+      "api": "https://api.osf.io/v2/files/6a396a62cd0deed89bc22d9b/",
+      "verified_sha256": "9292314a406226f602496edb0268ea70afdb077c58bfe574e7632a639f9a5a9f"
+    },
+    {
+      "path": "dataStim29.mat",
+      "size": 82339032,
+      "sha256": "004c432c3e88e305d3c0cb54983079684a99e08bebbfd2370782f4af5d4b53a2",
+      "download": "https://osf.io/download/6a396a7bfde2029b16253aef/",
+      "api": "https://api.osf.io/v2/files/6a396a7bfde2029b16253aef/",
+      "verified_sha256": "004c432c3e88e305d3c0cb54983079684a99e08bebbfd2370782f4af5d4b53a2"
+    },
+    {
+      "path": "dataSub25.mat",
+      "size": 117172563,
+      "sha256": "5aa347d20ed87527e2438033006f25d3887d39766fe5af58390ca5fbdaea3706",
+      "download": "https://osf.io/download/6a396a80da5f7f8b31253c06/",
+      "api": "https://api.osf.io/v2/files/6a396a80da5f7f8b31253c06/",
+      "verified_sha256": "5aa347d20ed87527e2438033006f25d3887d39766fe5af58390ca5fbdaea3706"
+    },
+    {
+      "path": "dataStim22.mat",
+      "size": 82283551,
+      "sha256": "66ccdd8e1ecea39880200783faf018f06ba834c1c1d6d4b55fb057e2e8416f50",
+      "download": "https://osf.io/download/6a396a7bccc8f505c8c22e0e/",
+      "api": "https://api.osf.io/v2/files/6a396a7bccc8f505c8c22e0e/",
+      "verified_sha256": "66ccdd8e1ecea39880200783faf018f06ba834c1c1d6d4b55fb057e2e8416f50"
+    },
+    {
+      "path": "dataSub22.mat",
+      "size": 110620800,
+      "sha256": "533273153c901ef27394c3550ab362428599be05ec600f06bd10a77761efdb93",
+      "download": "https://osf.io/download/6a396a7f94a3cbeca428e471/",
+      "api": "https://api.osf.io/v2/files/6a396a7f94a3cbeca428e471/",
+      "verified_sha256": "533273153c901ef27394c3550ab362428599be05ec600f06bd10a77761efdb93"
+    },
+    {
+      "path": "dataStim21.mat",
+      "size": 75108738,
+      "sha256": "e732ea803b6ec0bed6a23ae414fa688582f431586cef381aba4cab5c29ad5837",
+      "download": "https://osf.io/download/6a396a7bda5f7f8b31253c02/",
+      "api": "https://api.osf.io/v2/files/6a396a7bda5f7f8b31253c02/",
+      "verified_sha256": "e732ea803b6ec0bed6a23ae414fa688582f431586cef381aba4cab5c29ad5837"
+    },
+    {
+      "path": "dataSub14.mat",
+      "size": 113494734,
+      "sha256": "d2eb49d762e83437eeb84d9fabe9e94bd6f5a670e56cab6889e2537bbbc7b317",
+      "download": "https://osf.io/download/6a396a682ecdd06784c22cde/",
+      "api": "https://api.osf.io/v2/files/6a396a682ecdd06784c22cde/",
+      "verified_sha256": "d2eb49d762e83437eeb84d9fabe9e94bd6f5a670e56cab6889e2537bbbc7b317"
+    },
+    {
+      "path": "dataSub12.mat",
+      "size": 111667269,
+      "sha256": "0ad1c7ec9c1eb9941b0c5e731eec65c4e0ea4733d21b65923a0aa9c13f8ce27b",
+      "download": "https://osf.io/download/6a396a7e4abbc6be4228e4f7/",
+      "api": "https://api.osf.io/v2/files/6a396a7e4abbc6be4228e4f7/",
+      "verified_sha256": "0ad1c7ec9c1eb9941b0c5e731eec65c4e0ea4733d21b65923a0aa9c13f8ce27b"
+    },
+    {
+      "path": "dataSub27.mat",
+      "size": 152137675,
+      "sha256": "92ee4496fec462b382db77ba0cda676abe2a6170bb1e132dcc263c1939522a6f",
+      "download": "https://osf.io/download/6a396a695cc90056fdc22e75/",
+      "api": "https://api.osf.io/v2/files/6a396a695cc90056fdc22e75/",
+      "verified_sha256": "92ee4496fec462b382db77ba0cda676abe2a6170bb1e132dcc263c1939522a6f"
+    },
+    {
+      "path": "dataStim11.mat",
+      "size": 77404522,
+      "sha256": "8f30aa5d0ddbbd9d14325587f0bc19a0d929cdf9a080eea5e0a78f0febd45e22",
+      "download": "https://osf.io/download/6a396a6258aad8582dc22d99/",
+      "api": "https://api.osf.io/v2/files/6a396a6258aad8582dc22d99/",
+      "verified_sha256": "8f30aa5d0ddbbd9d14325587f0bc19a0d929cdf9a080eea5e0a78f0febd45e22"
+    },
+    {
+      "path": "dataStim5.mat",
+      "size": 78964347,
+      "sha256": "13ab9d9b9f8d7e9487820703df1d0fc1edd17058710a44fb3458472fbe5f77ff",
+      "download": "https://osf.io/download/6a396a7b41c339357228e519/",
+      "api": "https://api.osf.io/v2/files/6a396a7b41c339357228e519/",
+      "verified_sha256": "13ab9d9b9f8d7e9487820703df1d0fc1edd17058710a44fb3458472fbe5f77ff"
+    },
+    {
+      "path": "dataStim1.mat",
+      "size": 76590857,
+      "sha256": "b2aa886a220fae360f62d3a41ac750fee45f77d551c92aa2b1a517f51eaf9afc",
+      "download": "https://osf.io/download/6a396a7858aad8582dc22da9/",
+      "api": "https://api.osf.io/v2/files/6a396a7858aad8582dc22da9/",
+      "verified_sha256": "b2aa886a220fae360f62d3a41ac750fee45f77d551c92aa2b1a517f51eaf9afc"
+    },
+    {
+      "path": "dataSub2.mat",
+      "size": 63307892,
+      "sha256": "e91fac9b7a2cfbb2b00458c26cb7ffea5eb2ea809a75f8b92a0dbdd16c6df41a",
+      "download": "https://osf.io/download/6a396a7241c339357228e516/",
+      "api": "https://api.osf.io/v2/files/6a396a7241c339357228e516/",
+      "verified_sha256": "e91fac9b7a2cfbb2b00458c26cb7ffea5eb2ea809a75f8b92a0dbdd16c6df41a"
+    },
+    {
+      "path": "dataSub18.mat",
+      "size": 57994671,
+      "sha256": "2bcc64517e3e91d502da20949b1e1bb88b7749c370ef720e877c67b3e5e7a454",
+      "download": "https://osf.io/download/6a396a547a8af049b4253b5e/",
+      "api": "https://api.osf.io/v2/files/6a396a547a8af049b4253b5e/",
+      "verified_sha256": "2bcc64517e3e91d502da20949b1e1bb88b7749c370ef720e877c67b3e5e7a454"
+    },
+    {
+      "path": "dataStim16.mat",
+      "size": 79102895,
+      "sha256": "755faf18ee3ddedd971e295310ac9de790acb829deef62cf6532dcd76866ef72",
+      "download": "https://osf.io/download/6a396a7b4abbc6be4228e4f5/",
+      "api": "https://api.osf.io/v2/files/6a396a7b4abbc6be4228e4f5/",
+      "verified_sha256": "755faf18ee3ddedd971e295310ac9de790acb829deef62cf6532dcd76866ef72"
+    },
+    {
+      "path": "dataStim10.mat",
+      "size": 75606848,
+      "sha256": "687b8d6be0f4fa407ae459cf41994bba7c2702b4ab1e4ad91489491b94d9f339",
+      "download": "https://osf.io/download/6a396a77cd0deed89bc22daa/",
+      "api": "https://api.osf.io/v2/files/6a396a77cd0deed89bc22daa/",
+      "verified_sha256": "687b8d6be0f4fa407ae459cf41994bba7c2702b4ab1e4ad91489491b94d9f339"
+    },
+    {
+      "path": "dataSub4.mat",
+      "size": 53589910,
+      "sha256": "ef2516d0ee1a645f74ea42b88bb53adf5c164c091c06e527d2a58b22b3ffc1e2",
+      "download": "https://osf.io/download/6a396a6f256fb850c3c22cef/",
+      "api": "https://api.osf.io/v2/files/6a396a6f256fb850c3c22cef/",
+      "verified_sha256": "ef2516d0ee1a645f74ea42b88bb53adf5c164c091c06e527d2a58b22b3ffc1e2"
+    },
+    {
+      "path": "dataStim18.mat",
+      "size": 78640630,
+      "sha256": "0b5d67bb6001b5e30ebcdf8e4afbf4b3df9d76289eb34258a4fb4cd2bb18de98",
+      "download": "https://osf.io/download/6a396a6397100e789d253b13/",
+      "api": "https://api.osf.io/v2/files/6a396a6397100e789d253b13/",
+      "verified_sha256": "0b5d67bb6001b5e30ebcdf8e4afbf4b3df9d76289eb34258a4fb4cd2bb18de98"
+    },
+    {
+      "path": "dataStim7.mat",
+      "size": 80130999,
+      "sha256": "a8d09855439c51cec29c32fae2610442955366ab67bf6181a238e92933c9effe",
+      "download": "https://osf.io/download/6a396a7bcd0deed89bc22db3/",
+      "api": "https://api.osf.io/v2/files/6a396a7bcd0deed89bc22db3/",
+      "verified_sha256": "a8d09855439c51cec29c32fae2610442955366ab67bf6181a238e92933c9effe"
+    },
+    {
+      "path": "dataStim3.mat",
+      "size": 76205584,
+      "sha256": "dce079f5bca95a9fb58a036f094b38218c4f7ec4b28e2268517bd4673f8ca847",
+      "download": "https://osf.io/download/6a396a79cd0deed89bc22db0/",
+      "api": "https://api.osf.io/v2/files/6a396a79cd0deed89bc22db0/",
+      "verified_sha256": "dce079f5bca95a9fb58a036f094b38218c4f7ec4b28e2268517bd4673f8ca847"
+    },
+    {
+      "path": "dataStim27.mat",
+      "size": 74920275,
+      "sha256": "97a0bb69eef41eb5e7aa0803968e745287bb71b826f66b19e73eb56b2574dc1f",
+      "download": "https://osf.io/download/6a396a7a58aad8582dc22dab/",
+      "api": "https://api.osf.io/v2/files/6a396a7a58aad8582dc22dab/",
+      "verified_sha256": "97a0bb69eef41eb5e7aa0803968e745287bb71b826f66b19e73eb56b2574dc1f"
+    },
+    {
+      "path": "dataSub5.mat",
+      "size": 64420660,
+      "sha256": "e1f208a44ba1db0ee062b954e89b3006f6601081e1e623bad26ff6395d3ae1e4",
+      "download": "https://osf.io/download/6a396a5cb9d767ff5ce318f2/",
+      "api": "https://api.osf.io/v2/files/6a396a5cb9d767ff5ce318f2/",
+      "verified_sha256": "e1f208a44ba1db0ee062b954e89b3006f6601081e1e623bad26ff6395d3ae1e4"
+    },
+    {
+      "path": "dataStim8.mat",
+      "size": 76022647,
+      "sha256": "0827c0bdae22c034db6d3d88774d6688fc51773a25962f05c4cd07e03b72c0a4",
+      "download": "https://osf.io/download/6a396a78413228ff3528e54b/",
+      "api": "https://api.osf.io/v2/files/6a396a78413228ff3528e54b/",
+      "verified_sha256": "0827c0bdae22c034db6d3d88774d6688fc51773a25962f05c4cd07e03b72c0a4"
+    },
+    {
+      "path": "dataSub23.mat",
+      "size": 110889367,
+      "sha256": "5175326573fbdf06e222c22d1d35eccc657c74e3a9033c1da085d45ae3b5def7",
+      "download": "https://osf.io/download/6a396a7f2ecdd06784c22ce7/",
+      "api": "https://api.osf.io/v2/files/6a396a7f2ecdd06784c22ce7/",
+      "verified_sha256": "5175326573fbdf06e222c22d1d35eccc657c74e3a9033c1da085d45ae3b5def7"
+    },
+    {
+      "path": "dataSub29.mat",
+      "size": 118126444,
+      "sha256": "0de761e8d6b55650bf0d11481887d7ee7cd9dae5b34665a308df8c9202688e57",
+      "download": "https://osf.io/download/6a396a6978db99d66c253af8/",
+      "api": "https://api.osf.io/v2/files/6a396a6978db99d66c253af8/",
+      "verified_sha256": "0de761e8d6b55650bf0d11481887d7ee7cd9dae5b34665a308df8c9202688e57"
+    },
+    {
+      "path": "dataStim9.mat",
+      "size": 76013761,
+      "sha256": "2110f37b2eb1f085200afc1b146609bba5e656f2a7160da819704a435ee3cffd",
+      "download": "https://osf.io/download/6a396a797a8af049b4253b88/",
+      "api": "https://api.osf.io/v2/files/6a396a797a8af049b4253b88/",
+      "verified_sha256": "2110f37b2eb1f085200afc1b146609bba5e656f2a7160da819704a435ee3cffd"
+    },
+    {
+      "path": "dataSub20.mat",
+      "size": 104830255,
+      "sha256": "074cc939ad11204c3d34affd820792b37570d00cb082450f58e68a56c231297b",
+      "download": "https://osf.io/download/6a396a6741c339357228e511/",
+      "api": "https://api.osf.io/v2/files/6a396a6741c339357228e511/",
+      "verified_sha256": "074cc939ad11204c3d34affd820792b37570d00cb082450f58e68a56c231297b"
+    },
+    {
+      "path": "dataSub3.mat",
+      "size": 72346411,
+      "sha256": "10ceff67a4dca8ea18fa703039b6f3e06378eb114acde02b1426efe3229d6d76",
+      "download": "https://osf.io/download/6a396a5ed949ab22d928e498/",
+      "api": "https://api.osf.io/v2/files/6a396a5ed949ab22d928e498/",
+      "verified_sha256": "10ceff67a4dca8ea18fa703039b6f3e06378eb114acde02b1426efe3229d6d76"
+    },
+    {
+      "path": "dataStim30.mat",
+      "size": 76562030,
+      "sha256": "e088b4d36e25fd20dd05647a94e88eec275efd3d92e6131bafbc3091924f267a",
+      "download": "https://osf.io/download/6a396a61c6b68ce6c4253b31/",
+      "api": "https://api.osf.io/v2/files/6a396a61c6b68ce6c4253b31/",
+      "verified_sha256": "e088b4d36e25fd20dd05647a94e88eec275efd3d92e6131bafbc3091924f267a"
+    },
+    {
+      "path": "dataSub30.mat",
+      "size": 131489091,
+      "sha256": "378f3b6c76aa90b602e8d823654fdfbc8001046526e26e08a4e734870821dd5e",
+      "download": "https://osf.io/download/6a396a80c6b68ce6c4253b45/",
+      "api": "https://api.osf.io/v2/files/6a396a80c6b68ce6c4253b45/",
+      "verified_sha256": "378f3b6c76aa90b602e8d823654fdfbc8001046526e26e08a4e734870821dd5e"
+    },
+    {
+      "path": "chanloc.mat",
+      "size": 1052,
+      "sha256": "07d98a8faaa9c38c2b69d9d736672ce141e5e1c38953283c0b4d7ed982113440",
+      "download": "https://osf.io/download/6a396a3b41c339357228e4dd/",
+      "api": "https://api.osf.io/v2/files/6a396a3b41c339357228e4dd/",
+      "verified_sha256": "07d98a8faaa9c38c2b69d9d736672ce141e5e1c38953283c0b4d7ed982113440"
+    }
+  ]
+}

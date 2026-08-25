@@ -178,7 +178,13 @@ def test_invalid_stimulus_trial_arrays(trial, expected_code) -> None:
 
     report = validate_cnd(CNDRecording(stimulus=stimulus))
 
-    assert any(issue.code == expected_code for issue in report.errors)
+    issues = (
+        report.warnings if expected_code == "empty_stimulus_trial" else report.errors
+    )
+    assert any(issue.code == expected_code for issue in issues)
+    if expected_code == "empty_stimulus_trial":
+        strict = validate_cnd(CNDRecording(stimulus=stimulus), strict_spec=True)
+        assert any(issue.code == expected_code for issue in strict.errors)
 
 
 def test_paired_trial_and_feature_length_mismatches(sample_recording) -> None:

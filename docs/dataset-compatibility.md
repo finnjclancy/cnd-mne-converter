@@ -19,6 +19,7 @@ downloads are tracked in the full-catalogue verification work.
 | VocodedSpeech | 13 | 25 | 128 / 128 Hz | 128 | 3 | Subject 13 absent while subject 14 is present; no channel locations; subject-specific stimuli | All 13 pairs pass with the numbering gap preserved |
 | FDSpeech L1 | 25 | 15 | 100 / 100 Hz | 64 | 12 | `pre_dataSubN.mat` names; feature streams often differ by one sample | All 25 subjects pass with 305 feature-length warnings retained |
 | FDSpeech L2 | 25 | 13–15 | 100 / 100 Hz | 64 | 12 | Fifteen files use a 66-entry topomap layout containing 64 channels plus `COMNT` and `SCALE`; one neural/stimulus trial-count mismatch | All 25 subjects pass after separating real channels from layout drawing helpers |
+| PolyphonicBach | 31 | 32 | 64 / 128 Hz | 24 | 48 | Sparse left/right musical features, one duplicated composite name, MATLAB v7.3 files, and a one-sample 24-channel trial | All 31 subjects pass after preserving sparse features and resolving the squeezed one-sample trial |
 
 All 142 non-empty subject files parsed without structural validation errors.
 Across 3,008 trials, all neural and stimulus MNE views, Welch PSD smoke checks, and controlled
@@ -63,6 +64,13 @@ scientific assertion about the source unit. See the [JSON evidence](results/READ
     FDSpeech L2 embeds a 2D topomap layout with global outline/mask fields and
     two drawing helpers. The converter exposes the 64 EEG labels to MNE and
     retains the complete raw layout for CND export.
+15. MATLAB squeezing is ambiguous at one sample. PolyphonicBach subject 16 has
+    a length-24 vector surrounded by 24-channel trials. The established channel
+    count resolves it as one sample across 24 channels, not 24 samples from one
+    channel.
+16. Sparse features can be meaningful. PolyphonicBach's absent left/right
+    musical parts remain zero-sample stimulus views; duplicate source names are
+    preserved and indexed access remains unambiguous.
 
 ## Test levels
 

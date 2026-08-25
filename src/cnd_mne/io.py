@@ -483,6 +483,13 @@ def _as_matrix_trial_tuple(
     for array in arrays:
         if array.ndim == 1 and array.size == 0 and inferred_channels is not None:
             output.append(np.empty((0, inferred_channels), dtype=array.dtype))
+        elif (
+            array.ndim == 1
+            and inferred_channels is not None
+            and inferred_channels > 1
+            and array.size == inferred_channels
+        ):
+            output.append(array[np.newaxis, :])
         elif array.ndim == 1:
             output.append(array[:, np.newaxis])
         else:

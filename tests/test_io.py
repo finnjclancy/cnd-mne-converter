@@ -444,6 +444,23 @@ def test_empty_neural_cells_retain_inferred_channel_count(tmp_path) -> None:
     assert [trial.shape for trial in neural.trials] == [(3, 2), (0, 2)]
 
 
+def test_one_sample_multichannel_trial_is_restored_after_matlab_squeeze(
+    tmp_path,
+) -> None:
+    neural = cnd_io._parse_neural(
+        {
+            "data": [np.ones((3, 2)), np.array([4.0, 5.0])],
+            "fs": 10.0,
+            "dataType": "EEG",
+        },
+        "eeg",
+        tmp_path / "one-sample.mat",
+    )
+
+    assert [trial.shape for trial in neural.trials] == [(3, 2), (1, 2)]
+    np.testing.assert_array_equal(neural.trials[1], [[4.0, 5.0]])
+
+
 def test_topomap_layout_uses_real_channels_and_preserves_raw_layout(tmp_path) -> None:
     layout = {
         "label": np.array(["Cz", "Pz", "COMNT", "SCALE"], dtype=object),
