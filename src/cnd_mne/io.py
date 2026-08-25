@@ -32,6 +32,7 @@ _NEURAL_RESERVED = {
     "dataUnit",
     "unit",
     "units",
+    "datatype",
 }
 _STIMULUS_RESERVED = {
     "data",
@@ -208,7 +209,7 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
     if not isinstance(value, Mapping):
         raise CNDReadError(f"{source}:{variable_name} is not a MATLAB structure")
     try:
-        trials = _as_matrix_trial_tuple(value["data"])
+        trials, signal_types, channels_per_signal_type = _parse_neural_trials(value)
         sfreq = float(_scalar(value["fs"]))
     except KeyError as error:
         raise CNDReadError(
@@ -296,10 +297,57 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
         padding_start_sample=value.get("paddingStartSample"),
         cnd_version=_optional_scalar(value.get("cndVersion")),
         data_unit=data_unit,
+        signal_types=signal_types,
+        channels_per_signal_type=channels_per_signal_type,
         extra_fields=extras,
         variable_name=variable_name,
         source_path=source,
     )
+
+
+def _parse_neural_trials(
+    value: Mapping[str, Any],
+) -> tuple[tuple[np.ndarray, ...], tuple[str, ...] | None, tuple[int, ...] | None]:
+    """Normalize ordinary trials and fNIRS signal-type x trial cell grids."""
+    data = value["data"]
+    data_type = _string_or_default(value.get("dataType"), "").strip().lower()
+    datatype = value.get("datatype")
+    signal_types = (
+        tuple(str(item) for item in np.atleast_1d(datatype).ravel())
+        if datatype is not None
+        else None
+    )
+    array = np.asarray(data, dtype=object)
+    if (
+        data_type in {"fnirs", "nirs"}
+        and signal_types
+        and array.dtype == object
+        and array.ndim == 2
+        and array.shape[0] == len(signal_types)
+    ):
+        block_counts: list[int] = []
+        for signal_index in range(len(signal_types)):
+            first = np.asarray(array[signal_index, 0])
+            first = first[:, np.newaxis] if first.ndim == 1 else first
+            if first.ndim != 2:
+                raise CNDReadError("fNIRS blocks must be time x channels")
+            block_counts.append(int(first.shape[1]))
+        trials: list[np.ndarray] = []
+        for trial_index in range(array.shape[1]):
+            blocks: list[np.ndarray] = []
+            samples: int | None = None
+            for signal_index, expected_channels in enumerate(block_counts):
+                block = np.asarray(array[signal_index, trial_index])
+                block = block[:, np.newaxis] if block.ndim == 1 else block
+                if block.ndim != 2 or block.shape[1] != expected_channels:
+                    raise CNDReadError("fNIRS signal blocks have inconsistent shapes")
+                if samples is not None and block.shape[0] != samples:
+                    raise CNDReadError("fNIRS signal blocks have unequal sample counts")
+                samples = int(block.shape[0])
+                blocks.append(block)
+            trials.append(np.concatenate(blocks, axis=1))
+        return tuple(trials), signal_types, tuple(block_counts)
+    return _as_matrix_trial_tuple(data), None, None
 
 
 def _parse_stimulus(value: Any, source: Path) -> CNDStimulus:
@@ -440,7 +488,7 @@ def _neural_to_mat(neural: CNDNeural) -> dict[str, Any]:
         {
             "dataType": neural.data_type,
             "fs": neural.sfreq,
-            "data": _cell_row(neural.trials),
+            "data": _neural_data_to_mat(neural),
         }
     )
     if neural.device_name is not None:
@@ -468,7 +516,25 @@ def _neural_to_mat(neural: CNDNeural) -> dict[str, Any]:
         result["cndVersion"] = neural.cnd_version
     if neural.data_unit is not None:
         result["dataUnit"] = neural.data_unit
+    if neural.signal_types is not None:
+        result["datatype"] = _cell_row(neural.signal_types)
     return _without_none(result)
+
+
+def _neural_data_to_mat(neural: CNDNeural) -> np.ndarray:
+    if neural.signal_types is None:
+        return _cell_row(neural.trials)
+    counts = neural.channels_per_signal_type
+    if counts is None or len(counts) != len(neural.signal_types):
+        raise CNDReadError("signal_types require matching channels_per_signal_type")
+    data = np.empty((len(counts), neural.n_trials), dtype=object)
+    stops = np.cumsum((0, *counts))
+    for signal_index in range(len(counts)):
+        for trial_index, trial in enumerate(neural.trials):
+            data[signal_index, trial_index] = np.asarray(trial)[
+                :, stops[signal_index] : stops[signal_index + 1]
+            ]
+    return data
 
 
 def _stimulus_to_mat(stimulus: CNDStimulus) -> dict[str, Any]:
@@ -560,11 +626,22 @@ def _atomic_savemat(
 
 def _resolve_subject_file(directory: Path, subject: str | int | None) -> Path | None:
     if subject is not None:
-        candidate = directory / f"dataSub{subject}.mat"
-        if not candidate.exists():
-            raise FileNotFoundError(candidate)
-        return candidate
-    candidates = sorted(directory.glob("dataSub*.mat"))
+        candidates = (
+            directory / f"dataSub{subject}.mat",
+            directory / f"pre_dataSub{subject}.mat",
+            directory / f"dataParticipant_{subject}.mat",
+        )
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        raise FileNotFoundError(candidates[0])
+    candidates = sorted(
+        {
+            *directory.glob("dataSub*.mat"),
+            *directory.glob("pre_dataSub*.mat"),
+            *directory.glob("dataParticipant_*.mat"),
+        }
+    )
     if not candidates:
         return None
     if len(candidates) > 1:
@@ -585,8 +662,10 @@ def _resolve_stimulus_file(
     sibling_stimulus = directory.parent / "stimCND"
     if sibling_stimulus.is_dir():
         search_directories.append(sibling_stimulus)
+    if directory.parent not in search_directories:
+        search_directories.append(directory.parent)
     candidate_names = (
-        (f"dataStim{subject}.mat", "dataStim.mat")
+        (f"dataStim{subject}.mat", f"dataStim_{subject}.mat", "dataStim.mat")
         if subject is not None
         else ("dataStim.mat",)
     )
@@ -605,7 +684,13 @@ def _resolve_stimulus_file(
 
 def _subject_from_filename(path: Path) -> str | None:
     stem = path.stem
-    return stem.removeprefix("dataSub") if stem.startswith("dataSub") else None
+    if stem.startswith("dataSub"):
+        return stem.removeprefix("dataSub")
+    if stem.startswith("pre_dataSub"):
+        return stem.removeprefix("pre_dataSub")
+    if stem.startswith("dataParticipant_"):
+        return stem.removeprefix("dataParticipant_")
+    return None
 
 
 def _scalar(value: Any) -> Any:

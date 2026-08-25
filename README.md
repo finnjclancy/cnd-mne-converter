@@ -22,6 +22,8 @@ The tested research milestone provides:
 - MNE `misc` views of continuous stimulus features;
 - explicit concatenation with protected trial-boundary annotations;
 - explicit conversion of declared EEG units to MNE's required volts;
+- fNIRS HbO/HbR conversion to MNE molar channels, with HbT retained as
+  `misc` because MNE has no HbT channel type;
 - template-backed MNE-to-CND export and an atomic MATLAB writer;
 - `inspect` and full-dataset `verify-dataset` commands; and
 - synthetic, committed MATLAB, MNE FIF, CLI, and round-trip tests.
@@ -33,9 +35,10 @@ round-trip checks passed. See the
 [research milestone report](docs/research-milestone-report.md) for the exact
 claims and limitations.
 
-The prototype currently supports EEG only. MATLAB v7.3/HDF5 writing, automatic
-unit discovery, automatic coordinate scaling, external-channel typing, TRF
-results, and arbitrary MNE modalities remain future work.
+The prototype currently supports EEG and the observed CND fNIRS layout.
+MATLAB v7.3/HDF5 writing, automatic unit discovery, automatic coordinate
+scaling, external-channel typing, MEG, TRF results, and arbitrary MNE
+modalities remain future work.
 
 ## Why a companion object is necessary
 
@@ -126,6 +129,10 @@ The unit is mandatory for MNE checks when a legacy file omits it. Supply only a
 unit confirmed by the dataset owner. Use `--strict-spec` when validating newly
 created CND data against the published CND 1.0 rules.
 
+For fNIRS, MNE stores haemoglobin concentrations in molar (`M`) units. The
+reader combines CND's `datatype x trial` cells into one MNE trial while
+retaining the block sizes needed to reconstruct the original CND layout.
+
 ## Design rules
 
 1. **One `RawArray` per trial.** CND trials can have different durations, while
@@ -135,8 +142,9 @@ created CND data against the published CND 1.0 rules.
    mode preserves both clocks and warns; strict mode rejects the mismatch.
 3. **No automatic resampling or truncation.** Either changes scientific data
    and must be requested through a future explicit policy.
-4. **No unit guessing.** MNE EEG is in volts; conversion stops when CND does not
-   declare a unit and the caller does not provide one.
+4. **No unit guessing.** MNE EEG is in volts and fNIRS concentrations are in
+   molar units; conversion stops when CND does not declare a unit and the
+   caller does not provide one.
 5. **No coordinate guessing.** Montage conversion is opt-in and requires an
    explicit scale to metres.
 6. **Preserve unknown fields.** Legacy datasets contain useful experiment

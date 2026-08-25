@@ -38,7 +38,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     verify_parser.add_argument("--dataset-name")
     verify_parser.add_argument(
         "--neural-unit",
-        help="explicit source EEG unit for MNE checks (V, mV, uV, or nV)",
+        help="explicit source neural unit for MNE checks (for example uV or uM)",
     )
     verify_parser.add_argument(
         "--strict-spec",

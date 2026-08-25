@@ -34,6 +34,8 @@ class CNDNeural:
     padding_start_sample: Any = None
     cnd_version: CNDVersion | None = None
     data_unit: str | None = None
+    signal_types: tuple[str, ...] | None = None
+    channels_per_signal_type: tuple[int, ...] | None = None
     extra_fields: dict[str, Any] = field(default_factory=dict)
     variable_name: str = "eeg"
     source_path: Path | None = None

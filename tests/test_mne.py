@@ -8,6 +8,7 @@ import pytest
 
 from cnd_mne import (
     CNDAmbiguousUnitError,
+    CNDNeural,
     CNDRecording,
     CNDUnsupportedError,
     CNDValidationError,
@@ -201,10 +202,36 @@ def test_stimulus_feature_lookup_errors_are_explicit(sample_recording) -> None:
 
 def test_non_eeg_and_unknown_units_are_rejected(sample_recording) -> None:
     meg = replace(sample_recording.neural, data_type="MEG")
-    with pytest.raises(CNDUnsupportedError, match="EEG only"):
+    with pytest.raises(CNDUnsupportedError, match="EEG and fNIRS"):
         to_mne(CNDRecording(neural=meg))
     with pytest.raises(ValueError, match="Unsupported EEG unit"):
         to_mne(sample_recording, neural_unit="arbitrary")
+
+
+def test_fnirs_conversion_and_template_round_trip() -> None:
+    trial = np.arange(60.0).reshape(10, 6)
+    neural = CNDNeural(
+        trials=(trial,),
+        sfreq=25.0,
+        data_type="fNIRS",
+        original_trial_positions=(1,),
+        data_unit="uM",
+        signal_types=("HbO", "HbR", "HbT"),
+        channels_per_signal_type=(2, 2, 2),
+        variable_name="fnirs",
+    )
+
+    with pytest.warns(RuntimeWarning, match="generated stable names"):
+        converted = to_mne(CNDRecording(neural=neural))
+    raw = converted.raws[0]
+    assert raw.get_channel_types() == ["hbo", "hbo", "hbr", "hbr", "misc", "misc"]
+    assert raw.ch_names == ["HbO01", "HbO02", "HbR01", "HbR02", "HbT01", "HbT02"]
+    np.testing.assert_allclose(raw.get_data(), trial.T * 1e-6)
+
+    round_trip = converted.to_cnd()
+    assert round_trip.neural.data_unit == "uM"
+    assert round_trip.neural.signal_types == ("HbO", "HbR", "HbT")
+    np.testing.assert_allclose(round_trip.neural.trials[0], trial)
 
 
 @pytest.mark.parametrize(
@@ -266,7 +293,7 @@ def test_from_mne_requires_trials_eeg_and_valid_policy(sample_recording) -> None
         from_mne([])
     with pytest.raises(ValueError, match="on_unsupported_metadata"):
         from_mne(raw, on_unsupported_metadata="invalid")
-    with pytest.raises(CNDUnsupportedError, match="type 'eeg'"):
+    with pytest.raises(CNDUnsupportedError, match="does not support channel types"):
         from_mne(misc)
 
 

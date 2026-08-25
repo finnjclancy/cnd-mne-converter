@@ -1,0 +1,301 @@
+{
+  "schema_version": 2,
+  "dataset_name": "Podcast-fNIRS",
+  "dataset_path": "data-work/podcast",
+  "generated_at_utc": "2026-08-24T23:54:42.538859+00:00",
+  "versions": {
+    "cnd_mne": "0.1.0.dev0",
+    "mne": "1.12.1",
+    "numpy": "2.5.2",
+    "python": "3.13.5"
+  },
+  "neural_unit_assumption": "M",
+  "strict_spec": false,
+  "round_trip_requested": true,
+  "mne_smoke_test_requested": true,
+  "skipped_empty_files": [],
+  "subjects": [
+    {
+      "subject": "1",
+      "neural_file": "dataSub1.mat",
+      "stimulus_file": "dataStim.mat",
+      "n_trials": 28,
+      "n_channels": 48,
+      "n_neural_samples": 86100,
+      "neural_sfreq": 25.0,
+      "stimulus_sfreq": 10.0,
+      "n_stimulus_features": 5,
+      "warning_counts": {
+        "duration_mismatch": 28,
+        "missing_channel_locations": 1,
+        "missing_cnd_version": 2,
+        "missing_data_unit": 1,
+        "sampling_frequency_mismatch": 1
+      },
+      "validation_errors": [],
+      "max_duration_difference_seconds": 88.9,
+      "mne_created": true,
+      "mne_shape_verified": true,
+      "mne_max_abs_error_source_units": 0.0,
+      "stimulus_mne_views_verified": true,
+      "mne_psd_finite": true,
+      "round_trip_verified": true,
+      "round_trip_max_abs_error_source_units": 0.0,
+      "cnd_metadata_preserved": true,
+      "conversion_warnings": [
+        "CND has no complete channel labels; generated stable names and omitted montage"
+      ],
+      "failure": null,
+      "elapsed_seconds": 0.902691
+    },
+    {
+      "subject": "2",
+      "neural_file": "dataSub2.mat",
+      "stimulus_file": "dataStim.mat",
+      "n_trials": 28,
+      "n_channels": 48,
+      "n_neural_samples": 86100,
+      "neural_sfreq": 25.0,
+      "stimulus_sfreq": 10.0,
+      "n_stimulus_features": 5,
+      "warning_counts": {
+        "duration_mismatch": 28,
+        "missing_channel_locations": 1,
+        "missing_cnd_version": 2,
+        "missing_data_unit": 1,
+        "sampling_frequency_mismatch": 1
+      },
+      "validation_errors": [],
+      "max_duration_difference_seconds": 88.9,
+      "mne_created": true,
+      "mne_shape_verified": true,
+      "mne_max_abs_error_source_units": 0.0,
+      "stimulus_mne_views_verified": true,
+      "mne_psd_finite": true,
+      "round_trip_verified": true,
+      "round_trip_max_abs_error_source_units": 0.0,
+      "cnd_metadata_preserved": true,
+      "conversion_warnings": [
+        "CND has no complete channel labels; generated stable names and omitted montage"
+      ],
+      "failure": null,
+      "elapsed_seconds": 0.147939
+    },
+    {
+      "subject": "3",
+      "neural_file": "dataSub3.mat",
+      "stimulus_file": "dataStim.mat",
+      "n_trials": 28,
+      "n_channels": 48,
+      "n_neural_samples": 86100,
+      "neural_sfreq": 25.0,
+      "stimulus_sfreq": 10.0,
+      "n_stimulus_features": 5,
+      "warning_counts": {
+        "duration_mismatch": 28,
+        "missing_channel_locations": 1,
+        "missing_cnd_version": 2,
+        "missing_data_unit": 1,
+        "sampling_frequency_mismatch": 1
+      },
+      "validation_errors": [],
+      "max_duration_difference_seconds": 88.9,
+      "mne_created": true,
+      "mne_shape_verified": true,
+      "mne_max_abs_error_source_units": 0.0,
+      "stimulus_mne_views_verified": true,
+      "mne_psd_finite": true,
+      "round_trip_verified": true,
+      "round_trip_max_abs_error_source_units": 0.0,
+      "cnd_metadata_preserved": true,
+      "conversion_warnings": [
+        "CND has no complete channel labels; generated stable names and omitted montage"
+      ],
+      "failure": null,
+      "elapsed_seconds": 0.166072
+    },
+    {
+      "subject": "4",
+      "neural_file": "dataSub4.mat",
+      "stimulus_file": "dataStim.mat",
+      "n_trials": 28,
+      "n_channels": 48,
+      "n_neural_samples": 86100,
+      "neural_sfreq": 25.0,
+      "stimulus_sfreq": 10.0,
+      "n_stimulus_features": 5,
+      "warning_counts": {
+        "duration_mismatch": 28,
+        "missing_channel_locations": 1,
+        "missing_cnd_version": 2,
+        "missing_data_unit": 1,
+        "sampling_frequency_mismatch": 1
+      },
+      "validation_errors": [],
+      "max_duration_difference_seconds": 88.9,
+      "mne_created": true,
+      "mne_shape_verified": true,
+      "mne_max_abs_error_source_units": 0.0,
+      "stimulus_mne_views_verified": true,
+      "mne_psd_finite": true,
+      "round_trip_verified": true,
+      "round_trip_max_abs_error_source_units": 0.0,
+      "cnd_metadata_preserved": true,
+      "conversion_warnings": [
+        "CND has no complete channel labels; generated stable names and omitted montage"
+      ],
+      "failure": null,
+      "elapsed_seconds": 0.1473
+    },
+    {
+      "subject": "5",
+      "neural_file": "dataSub5.mat",
+      "stimulus_file": "dataStim.mat",
+      "n_trials": 28,
+      "n_channels": 48,
+      "n_neural_samples": 86100,
+      "neural_sfreq": 25.0,
+      "stimulus_sfreq": 10.0,
+      "n_stimulus_features": 5,
+      "warning_counts": {
+        "duration_mismatch": 28,
+        "missing_channel_locations": 1,
+        "missing_cnd_version": 2,
+        "missing_data_unit": 1,
+        "sampling_frequency_mismatch": 1
+      },
+      "validation_errors": [],
+      "max_duration_difference_seconds": 88.9,
+      "mne_created": true,
+      "mne_shape_verified": true,
+      "mne_max_abs_error_source_units": 0.0,
+      "stimulus_mne_views_verified": true,
+      "mne_psd_finite": true,
+      "round_trip_verified": true,
+      "round_trip_max_abs_error_source_units": 0.0,
+      "cnd_metadata_preserved": true,
+      "conversion_warnings": [
+        "CND has no complete channel labels; generated stable names and omitted montage"
+      ],
+      "failure": null,
+      "elapsed_seconds": 0.157194
+    },
+    {
+      "subject": "6",
+      "neural_file": "dataSub6.mat",
+      "stimulus_file": "dataStim.mat",
+      "n_trials": 28,
+      "n_channels": 48,
+      "n_neural_samples": 86100,
+      "neural_sfreq": 25.0,
+      "stimulus_sfreq": 10.0,
+      "n_stimulus_features": 5,
+      "warning_counts": {
+        "duration_mismatch": 28,
+        "missing_channel_locations": 1,
+        "missing_cnd_version": 2,
+        "missing_data_unit": 1,
+        "sampling_frequency_mismatch": 1
+      },
+      "validation_errors": [],
+      "max_duration_difference_seconds": 88.9,
+      "mne_created": true,
+      "mne_shape_verified": true,
+      "mne_max_abs_error_source_units": 0.0,
+      "stimulus_mne_views_verified": true,
+      "mne_psd_finite": true,
+      "round_trip_verified": true,
+      "round_trip_max_abs_error_source_units": 0.0,
+      "cnd_metadata_preserved": true,
+      "conversion_warnings": [
+        "CND has no complete channel labels; generated stable names and omitted montage"
+      ],
+      "failure": null,
+      "elapsed_seconds": 0.14441
+    },
+    {
+      "subject": "7",
+      "neural_file": "dataSub7.mat",
+      "stimulus_file": "dataStim.mat",
+      "n_trials": 28,
+      "n_channels": 48,
+      "n_neural_samples": 86100,
+      "neural_sfreq": 25.0,
+      "stimulus_sfreq": 10.0,
+      "n_stimulus_features": 5,
+      "warning_counts": {
+        "duration_mismatch": 28,
+        "missing_channel_locations": 1,
+        "missing_cnd_version": 2,
+        "missing_data_unit": 1,
+        "sampling_frequency_mismatch": 1
+      },
+      "validation_errors": [],
+      "max_duration_difference_seconds": 88.9,
+      "mne_created": true,
+      "mne_shape_verified": true,
+      "mne_max_abs_error_source_units": 0.0,
+      "stimulus_mne_views_verified": true,
+      "mne_psd_finite": true,
+      "round_trip_verified": true,
+      "round_trip_max_abs_error_source_units": 0.0,
+      "cnd_metadata_preserved": true,
+      "conversion_warnings": [
+        "CND has no complete channel labels; generated stable names and omitted montage"
+      ],
+      "failure": null,
+      "elapsed_seconds": 0.144904
+    },
+    {
+      "subject": "8",
+      "neural_file": "dataSub8.mat",
+      "stimulus_file": "dataStim.mat",
+      "n_trials": 28,
+      "n_channels": 48,
+      "n_neural_samples": 86100,
+      "neural_sfreq": 25.0,
+      "stimulus_sfreq": 10.0,
+      "n_stimulus_features": 5,
+      "warning_counts": {
+        "duration_mismatch": 28,
+        "missing_channel_locations": 1,
+        "missing_cnd_version": 2,
+        "missing_data_unit": 1,
+        "sampling_frequency_mismatch": 1
+      },
+      "validation_errors": [],
+      "max_duration_difference_seconds": 88.9,
+      "mne_created": true,
+      "mne_shape_verified": true,
+      "mne_max_abs_error_source_units": 0.0,
+      "stimulus_mne_views_verified": true,
+      "mne_psd_finite": true,
+      "round_trip_verified": true,
+      "round_trip_max_abs_error_source_units": 0.0,
+      "cnd_metadata_preserved": true,
+      "conversion_warnings": [
+        "CND has no complete channel labels; generated stable names and omitted montage"
+      ],
+      "failure": null,
+      "elapsed_seconds": 0.146532
+    }
+  ],
+  "summary": {
+    "passed": true,
+    "n_discovered_subject_files": 8,
+    "n_skipped_empty_files": 0,
+    "n_subjects": 8,
+    "n_failed_subjects": 0,
+    "n_trials": 224,
+    "n_neural_samples": 688800,
+    "warning_counts": {
+      "duration_mismatch": 224,
+      "missing_channel_locations": 8,
+      "missing_cnd_version": 16,
+      "missing_data_unit": 8,
+      "sampling_frequency_mismatch": 8
+    },
+    "max_mne_abs_error_source_units": 0.0,
+    "max_round_trip_abs_error_source_units": 0.0
+  }
+}

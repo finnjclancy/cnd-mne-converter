@@ -72,7 +72,7 @@ def test_verify_reports_missing_dataset_and_subject_failure(
 ) -> None:
     empty = tmp_path / "empty"
     empty.mkdir()
-    with pytest.raises(FileNotFoundError, match="No dataSub"):
+    with pytest.raises(FileNotFoundError, match="No CND subject"):
         verify_dataset(empty)
 
     dataset = tmp_path / "dataset"
@@ -100,6 +100,27 @@ def test_verify_reports_and_skips_empty_subject_placeholder(
     assert summary["n_discovered_subject_files"] == 2
     assert summary["n_skipped_empty_files"] == 1
     assert summary["n_subjects"] == 1
+
+
+def test_verifier_discovers_named_participant_files(sample_recording, tmp_path) -> None:
+    paths = write_cnd(sample_recording, tmp_path)
+    paths.neural.rename(tmp_path / "dataParticipant_P001.mat")
+    paths.stimulus.rename(tmp_path / "dataStim_P001.mat")
+
+    report = verify_dataset(tmp_path, neural_unit="V")
+
+    assert report.passed
+    assert report.subjects[0].subject == "P001"
+
+
+def test_verifier_discovers_prefixed_subject_files(sample_recording, tmp_path) -> None:
+    paths = write_cnd(sample_recording, tmp_path, subject=7)
+    paths.neural.rename(tmp_path / "pre_dataSub7.mat")
+
+    report = verify_dataset(tmp_path, neural_unit="V")
+
+    assert report.passed
+    assert report.subjects[0].subject == "7"
 
 
 def test_psd_smoke_test_rejects_single_sample() -> None:

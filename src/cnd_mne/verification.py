@@ -147,24 +147,28 @@ def verify_dataset(
     source = supplied_path.resolve()
     data_directory = source / "dataCND" if (source / "dataCND").is_dir() else source
     discovered_files = sorted(
-        data_directory.glob("dataSub*.mat"), key=_subject_sort_key
+        {
+            *data_directory.glob("dataSub*.mat"),
+            *data_directory.glob("pre_dataSub*.mat"),
+            *data_directory.glob("dataParticipant_*.mat"),
+        },
+        key=_subject_sort_key,
     )
     if not discovered_files:
-        raise FileNotFoundError(f"No dataSub*.mat files found in {data_directory}")
+        raise FileNotFoundError(
+            f"No CND subject files found in {data_directory}; expected "
+            "dataSub*.mat, pre_dataSub*.mat, or dataParticipant_*.mat"
+        )
     skipped_empty_files = tuple(
         file.name for file in discovered_files if file.stat().st_size == 0
     )
     files = [file for file in discovered_files if file.stat().st_size > 0]
     if not files:
         raise FileNotFoundError(
-            f"No non-empty dataSub*.mat files found in {data_directory}"
+            f"No non-empty CND subject files found in {data_directory}"
         )
-    if neural_unit is not None:
-        _unit_scale(neural_unit)
-
     subjects = tuple(
         _verify_subject(
-            source,
             file,
             neural_unit=neural_unit,
             strict_spec=strict_spec,
@@ -194,7 +198,6 @@ def verify_dataset(
 
 
 def _verify_subject(
-    dataset_path: Path,
     neural_file: Path,
     *,
     neural_unit: str | None,
@@ -203,7 +206,7 @@ def _verify_subject(
     mne_smoke_test: bool,
 ) -> SubjectVerification:
     started = time.monotonic()
-    subject = neural_file.stem.removeprefix("dataSub")
+    subject = _subject_label(neural_file)
     empty: dict[str, Any] = {
         "subject": subject,
         "neural_file": neural_file.name,
@@ -229,7 +232,7 @@ def _verify_subject(
         "failure": None,
     }
     try:
-        recording = read_cnd(dataset_path, subject=subject)
+        recording = read_cnd(neural_file)
         report = validate_cnd(recording, strict_spec=strict_spec)
         neural = recording.neural
         stimulus = recording.stimulus
@@ -268,7 +271,7 @@ def _verify_subject(
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             converted = to_mne(recording, neural_unit=neural_unit)
-        scale = _unit_scale(neural_unit)
+        scale = _unit_scale(neural_unit, neural.data_type.strip().lower())
         shape_verified = True
         mne_error = 0.0
         for source_trial, raw in zip(neural.trials, converted.raws, strict=True):
@@ -389,8 +392,19 @@ def _issue_dict(issue: ValidationIssue) -> dict[str, str]:
 
 
 def _subject_sort_key(path: Path) -> tuple[int, str]:
-    label = path.stem.removeprefix("dataSub")
+    label = _subject_label(path)
     return (int(label), label) if label.isdigit() else (2**31 - 1, label)
+
+
+def _subject_label(path: Path) -> str:
+    stem = path.stem
+    if stem.startswith("dataSub"):
+        return stem.removeprefix("dataSub")
+    if stem.startswith("pre_dataSub"):
+        return stem.removeprefix("pre_dataSub")
+    if stem.startswith("dataParticipant_"):
+        return stem.removeprefix("dataParticipant_")
+    return stem
 
 
 def _optional_max(values: Any) -> float | None:

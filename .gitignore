@@ -16,6 +16,7 @@ data/
 /AAD_KULeuven/
 /musicImagery/
 /external-data/
+/data-work/
 *.fif
 *.mat
 *.zip

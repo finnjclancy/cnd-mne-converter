@@ -134,7 +134,25 @@ def validate_cnd(
                     "MNE conversion will use generated channel names and no montage",
                 )
             )
-        elif neural.channel_names is not None and len(set(neural.channel_names)) != len(
+        if neural.signal_types is not None:
+            counts = neural.channels_per_signal_type
+            if counts is None or len(counts) != len(neural.signal_types):
+                issues.append(
+                    _error(
+                        "signal_type_count",
+                        "neural.channels_per_signal_type",
+                        "Must match neural.signal_types",
+                    )
+                )
+            elif expected_channels is not None and sum(counts) != expected_channels:
+                issues.append(
+                    _error(
+                        "signal_channel_count",
+                        "neural.channels_per_signal_type",
+                        "Sum does not match neural channel count",
+                    )
+                )
+        if neural.channel_names is not None and len(set(neural.channel_names)) != len(
             neural.channel_names
         ):
             issues.append(

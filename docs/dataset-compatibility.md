@@ -1,8 +1,9 @@
 # Observed public dataset compatibility
 
 The table below records a structural scan of every subject file in six public
-archives. This is not scientific validation of the datasets or their physical
-units.
+archives, plus the linked Podcast fNIRS collection. This is not scientific
+validation of the datasets or their physical units. The remaining catalogue
+downloads are tracked in the full-catalogue verification work.
 
 | Dataset | Subjects scanned | Trials per subject | Neural / stimulus rate | Channels | Features | Important variation | Prototype result |
 | --- | ---: | ---: | --- | ---: | ---: | --- | --- |
@@ -12,6 +13,7 @@ units.
 | MusicImagery | 21 | 88 | 64 / 64 Hz | 64 | 2 | Listening and imagery conditions; opaque MATLAB `string` object in `dataType` | Full MNE and round-trip matrix passes; modality safely inferred from top-level `eeg` variable |
 | LalorRevSpeech | 10 | 20 | 128 / 128 Hz | 128 | 2 | Time-reversed speech, mastoids, channel locations, and large legacy duration differences | Full MNE and round-trip matrix passes with explicit warnings |
 | SparrKULee2 | 56 non-empty | 1–5 | 64 / 64 Hz | 64 | 1 | MATLAB v7.3/HDF5; subject-specific stimulus files; two mastoid groups; one 0-byte subject placeholder in the official archive | All 56 usable subjects pass MNE and round-trip checks; placeholder is recorded and skipped |
+| Podcast fNIRS | 8 | 28 | 25 / 10 Hz | 48 (16 HbO, 16 HbR, 16 HbT) | 5 | Neural data is a 3 x 28 signal-type grid rather than a simple trial row; no channel locations; fixed neural windows exceed paired stimulus durations | Full MNE and template round-trip matrix passes after lossless block normalization; differences remain warnings |
 
 All 142 non-empty subject files parsed without structural validation errors.
 Across 3,008 trials, all neural and stimulus MNE views, Welch PSD smoke checks, and controlled
@@ -36,6 +38,10 @@ scientific assertion about the source unit. See the [JSON evidence](results/READ
 9. MATLAB storage versions are not uniform. SparrKULee2 requires HDF5 object
    references, reversed array axes, subject-specific stimuli, and nested
    external-channel groups.
+10. Modalities need layout-specific normalization. Podcast fNIRS stores HbO,
+    HbR, and HbT as rows of a signal-type x trial cell grid. Flattening that
+    grid incorrectly creates 84 trials; the reader now combines each column
+    into one 48-channel trial and retains block boundaries for export.
 
 ## Test levels
 

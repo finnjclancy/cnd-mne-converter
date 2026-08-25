@@ -8,7 +8,10 @@ requiring confirmation.
 | `eeg.data` | Tuple of `time x channels` arrays | One `RawArray` per trial, transposed to `channels x time` | No implicit concatenation or padding |
 | `eeg.fs` | `CNDNeural.sfreq` | `Info["sfreq"]` | Direct mapping |
 | Stored EEG values | Original numerical values plus optional `data_unit` | Floating-point volts | Unit must be declared or explicitly supplied |
-| `eeg.dataType` | `CNDNeural.data_type` | MNE channel type | MVP supports EEG only; opaque legacy strings fall back to the variable name |
+| `eeg.dataType` | `CNDNeural.data_type` | MNE `eeg` channel type | Opaque legacy strings fall back to the variable name |
+| fNIRS `data` signal-type x trial grid | Combined `time x channels` trials plus retained block sizes | HbO `hbo`, HbR `hbr`, and HbT `misc` channels | The original grid is reconstructed during template-backed export |
+| fNIRS `datatype` | `signal_types` and `channels_per_signal_type` | Deterministic channel names and types | MNE has no HbT type; its values and CND label are preserved without mislabelling it HbO/HbR |
+| Stored fNIRS values | Original values plus optional `data_unit` | Floating-point molar concentrations | Unit must be declared or explicitly supplied; `M`, `mM`, `uM`, and `nM` are supported |
 | `eeg.deviceName` | `CNDNeural.device_name` | Provenance in `Info["description"]` | MNE has no universal device-name field |
 | `eeg.chanlocs` | Tuple of field-preserving dictionaries | Optional `DigMontage` | EEGLAB axis mapping and scale to metres are opt-in |
 | `eeg.extChan` | Separate external trial arrays, description, and additional fields | Retained in companion model, not added to neural `Raw` by default | Channel type, names, and units can be ambiguous |

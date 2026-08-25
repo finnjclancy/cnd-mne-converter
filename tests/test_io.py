@@ -106,6 +106,38 @@ def test_legacy_subject_specific_stimulus_layout(sample_recording, tmp_path) -> 
     assert loaded.stimulus.condition_indices == ("dry", "hrtf")
 
 
+def test_named_participant_stimulus_is_inferred(sample_recording, tmp_path) -> None:
+    paths = write_cnd(sample_recording, tmp_path, subject=1)
+    participant = tmp_path / "dataParticipant_P001.mat"
+    stimulus = tmp_path / "dataStim_P001.mat"
+    paths.neural.rename(participant)
+    paths.stimulus.rename(stimulus)
+
+    loaded = read_cnd(participant)
+    loaded_from_directory = read_cnd(tmp_path, subject="P001")
+
+    assert loaded.neural.n_trials == 2
+    assert loaded.stimulus.n_trials == 2
+    assert loaded_from_directory.neural.n_trials == 2
+
+
+def test_prefixed_subject_and_parent_stimulus_are_inferred(
+    sample_recording, tmp_path
+) -> None:
+    cohort = tmp_path / "cohort"
+    paths = write_cnd(sample_recording, cohort, subject=7)
+    prefixed = cohort / "pre_dataSub7.mat"
+    paths.neural.rename(prefixed)
+    paths.stimulus.rename(tmp_path / "dataStim7.mat")
+
+    loaded = read_cnd(prefixed)
+    loaded_from_directory = read_cnd(cohort, subject=7)
+
+    assert loaded.neural.n_trials == 2
+    assert loaded.stimulus.n_trials == 2
+    assert loaded_from_directory.stimulus.n_trials == 2
+
+
 def test_individual_neural_and_stimulus_files_can_be_read(
     sample_recording, tmp_path
 ) -> None:
@@ -324,6 +356,35 @@ def test_multiple_external_channel_groups_are_combined_without_loss(tmp_path) ->
         {"kind": "reference"},
         {"kind": "reference"},
     )
+
+
+def test_fnirs_signal_type_grid_is_normalized_and_written_losslessly(tmp_path) -> None:
+    data = np.empty((3, 2), dtype=object)
+    for signal_index in range(3):
+        data[signal_index, 0] = np.full((4, 2), signal_index + 1.0)
+        data[signal_index, 1] = np.full((5, 2), signal_index + 11.0)
+    neural = cnd_io._parse_neural(
+        {
+            "data": data,
+            "fs": 25.0,
+            "dataType": "fNIRS",
+            "datatype": np.array(["HbO", "HbR", "HbT"], dtype=object),
+            "origTrialPosition": [1, 2],
+        },
+        "fnirs",
+        tmp_path / "fnirs.mat",
+    )
+
+    assert neural.signal_types == ("HbO", "HbR", "HbT")
+    assert neural.channels_per_signal_type == (2, 2, 2)
+    assert [trial.shape for trial in neural.trials] == [(4, 6), (5, 6)]
+
+    path = write_cnd(CNDRecording(neural=neural), tmp_path / "out").neural
+    loaded = read_cnd_neural(path)
+    assert loaded.signal_types == neural.signal_types
+    assert loaded.channels_per_signal_type == neural.channels_per_signal_type
+    for expected, actual in zip(neural.trials, loaded.trials, strict=True):
+        np.testing.assert_array_equal(actual, expected)
 
 
 def test_atomic_writer_cleans_temporary_file_on_failure(monkeypatch, tmp_path) -> None:
