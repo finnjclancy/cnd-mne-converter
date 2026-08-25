@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "report_count": 18,
+  "dataset_reports": [
+    {
+      "dataset": "AAD KULeuven",
+      "report": "aad-kuleuven.json",
+      "passed": true,
+      "subject_files": 16,
+      "failed_subject_files": 0,
+      "trials": 128,
+      "neural_samples": 1605632,
+      "scalar_neural_values": 102760448
+    },
+    {
+      "dataset": "AliceSpeech",
+      "report": "alice-speech.json",
+      "passed": true,
+      "subject_files": 20,
+      "failed_subject_files": 0,
+      "trials": 240,
+      "neural_samples": 7235400,
+      "scalar_neural_values": 434124000
+    },
+    {
+      "dataset": "BabyRhythm-11mo",
+      "report": "baby-rhythm-11mo.json",
+      "passed": true,
+      "subject_files": 188,
+      "failed_subject_files": 0,
+      "trials": 3384,
+      "neural_samples": 3440796,
+      "scalar_neural_values": 199566168
+    },
+    {
+      "dataset": "BabyRhythm-4mo",
+      "report": "baby-rhythm-4mo.json",
+      "passed": false,
+      "subject_files": 188,
+      "failed_subject_files": 8,
+      "trials": 3368,
+      "neural_samples": 2970148,
+      "scalar_neural_values": 172268584
+    },
+    {
+      "dataset": "BabyRhythm-7mo",
+      "report": "baby-rhythm-7mo.json",
+      "passed": true,
+      "subject_files": 188,
+      "failed_subject_files": 0,
+      "trials": 3380,
+      "neural_samples": 3327892,
+      "scalar_neural_values": 193017736
+    },
+    {
+      "dataset": "BabyRhythm-adults",
+      "report": "baby-rhythm-adults.json",
+      "passed": true,
+      "subject_files": 68,
+      "failed_subject_files": 0,
+      "trials": 1224,
+      "neural_samples": 1265344,
+      "scalar_neural_values": 73389952
+    },
+    {
+      "dataset": "ChildStories-Sysoeva",
+      "report": "child-stories-sysoeva.json",
+      "passed": true,
+      "subject_files": 52,
+      "failed_subject_files": 0,
+      "trials": 148,
+      "neural_samples": 19634275,
+      "scalar_neural_values": 608662525
+    },
+    {
+      "dataset": "DiliBach",
+      "report": "dilibach.json",
+      "passed": true,
+      "subject_files": 20,
+      "failed_subject_files": 0,
+      "trials": 600,
+      "neural_samples": 49816260,
+      "scalar_neural_values": 3188240640
+    },
+    {
+      "dataset": "FDSpeech-L1",
+      "report": "fd-speech-l1.json",
+      "passed": true,
+      "subject_files": 25,
+      "failed_subject_files": 0,
+      "trials": 375,
+      "neural_samples": 6129586,
+      "scalar_neural_values": 392293504
+    },
+    {
+      "dataset": "FDSpeech-L2",
+      "report": "fd-speech-l2.json",
+      "passed": true,
+      "subject_files": 25,
+      "failed_subject_files": 0,
+      "trials": 373,
+      "neural_samples": 6160937,
+      "scalar_neural_values": 394299968
+    },
+    {
+      "dataset": "Lalor Natural Speech",
+      "report": "lalor-natural-speech.json",
+      "passed": true,
+      "subject_files": 19,
+      "failed_subject_files": 0,
+      "trials": 380,
+      "neural_samples": 9082303,
+      "scalar_neural_values": 1162534784
+    },
+    {
+      "dataset": "Lalor Reversed Speech",
+      "report": "lalor-reversed-speech.json",
+      "passed": true,
+      "subject_files": 10,
+      "failed_subject_files": 0,
+      "trials": 200,
+      "neural_samples": 4877834,
+      "scalar_neural_values": 624362752
+    },
+    {
+      "dataset": "Music Imagery",
+      "report": "music-imagery.json",
+      "passed": true,
+      "subject_files": 21,
+      "failed_subject_files": 0,
+      "trials": 1848,
+      "neural_samples": 3331944,
+      "scalar_neural_values": 213244416
+    },
+    {
+      "dataset": "Podcast-fNIRS",
+      "report": "podcast-fnirs.json",
+      "passed": true,
+      "subject_files": 8,
+      "failed_subject_files": 0,
+      "trials": 224,
+      "neural_samples": 688800,
+      "scalar_neural_values": 33062400
+    },
+    {
+      "dataset": "PolyphonicBach",
+      "report": "polyphonic-bach.json",
+      "passed": true,
+      "subject_files": 31,
+      "failed_subject_files": 0,
+      "trials": 993,
+      "neural_samples": 48690985,
+      "scalar_neural_values": 1168583640
+    },
+    {
+      "dataset": "SparrKULee1",
+      "report": "sparr-kulee1.json",
+      "passed": false,
+      "subject_files": 78,
+      "failed_subject_files": 1,
+      "trials": 372,
+      "neural_samples": 20419425,
+      "scalar_neural_values": 1306843200
+    },
+    {
+      "dataset": "SparrKULee2",
+      "report": "sparr-kulee2.json",
+      "passed": true,
+      "subject_files": 56,
+      "failed_subject_files": 0,
+      "trials": 212,
+      "neural_samples": 12247727,
+      "scalar_neural_values": 783854528
+    },
+    {
+      "dataset": "VocodedSpeech",
+      "report": "vocoded-speech.json",
+      "passed": true,
+      "subject_files": 13,
+      "failed_subject_files": 0,
+      "trials": 325,
+      "neural_samples": 3794193,
+      "scalar_neural_values": 242828352
+    }
+  ],
+  "totals": {
+    "subject_files": 1026,
+    "passed_subject_files": 1017,
+    "failed_subject_files": 9,
+    "trials": 17774,
+    "neural_samples": 204719481,
+    "scalar_neural_values": 11293937597,
+    "warning_counts": {
+      "duplicate_feature_names": 31,
+      "duration_mismatch": 4377,
+      "empty_neural_trial": 893,
+      "empty_stimulus_trial": 4176,
+      "external_length_mismatch": 584,
+      "feature_length_mismatch": 1515,
+      "invalid_trial_positions": 1,
+      "missing_channel_locations": 46,
+      "missing_cnd_version": 1973,
+      "missing_data_unit": 1025,
+      "missing_stimulus_indices": 16,
+      "paired_trial_count": 21,
+      "sampling_frequency_mismatch": 79
+    }
+  }
+}

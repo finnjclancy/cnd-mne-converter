@@ -15,7 +15,7 @@ discussion without silently altering scientific data.
 - Conservative MNE-to-CND model conversion.
 - CLI structural inspection.
 - Synthetic round-trip tests.
-- Full structural scans of six public datasets (142 non-empty subject files).
+- Full structural scans of the initial six public datasets.
 
 ## Phase 1b: tested interoperability milestone — implemented
 
@@ -46,6 +46,17 @@ Resolve with the CND maintainers:
 No default conversion should be added until each default has a defensible
 answer.
 
+## Phase 1c: full public-catalogue compatibility — implemented
+
+- Every downloadable CND collection linked by the catalogue scanned locally.
+- 1,026 neural CND files represented across 18 machine-readable reports.
+- EEG plus the observed HbO/HbR/HbT fNIRS layout supported.
+- Named participant files, prefixed files, shared/subject stimuli, MATLAB MCOS
+  strings, topomap layouts, sparse features, empty rejected trials, and
+  one-sample squeeze cases covered by tests.
+- 1,017 full end-to-end passes; eight all-empty files and one upstream
+  truncated HDF5 file retained as documented source failures.
+
 ## Phase 3: broaden compatibility
 
 - Broader MATLAB v7.3/HDF5 layout coverage and optional v7.3 writing.
@@ -54,10 +65,11 @@ answer.
 - Padding-aware alignment metadata.
 - Optional, provenance-recorded resampling.
 - Optional concatenated `Raw` view with boundary annotations.
-- Support for MEG and fNIRS only after defining modality-specific metadata.
+- Support for MEG and additional fNIRS layouts after defining modality-specific
+  metadata.
 - Memory-aware or lazy reading for multi-gigabyte datasets.
 
-## Phase 4: validation matrix — implemented for the first six archives
+## Phase 4: validation matrix — implemented for the full linked catalogue
 
 For every available CND dataset, record:
 
@@ -71,9 +83,9 @@ For every available CND dataset, record:
 - MNE construction result after units are confirmed; and
 - numerical round-trip error.
 
-Large data are cached outside Git history and mirrored as GitHub release assets.
-CI uses small fixtures; the reproducible full-dataset verifier runs locally and
-stores machine-readable reports under `docs/results/`.
+Large data remain outside Git history. SHA-256 manifests record the original
+public files; CI uses small fixtures, while the reproducible full-dataset
+verifier stores machine-readable reports under `docs/results/`.
 
 ## Phase 5: upstream strategy
 

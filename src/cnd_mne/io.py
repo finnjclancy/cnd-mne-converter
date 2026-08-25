@@ -327,7 +327,7 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
     original = value.get("origTrialPosition")
     original_positions = (
         tuple(int(item) for item in np.atleast_1d(original).ravel())
-        if original is not None
+        if original is not None and np.asarray(original).size
         else None
     )
     data_unit = next(

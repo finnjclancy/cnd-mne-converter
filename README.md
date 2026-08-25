@@ -28,12 +28,15 @@ The tested research milestone provides:
 - `inspect` and full-dataset `verify-dataset` commands; and
 - synthetic, committed MATLAB, MNE FIF, CLI, and round-trip tests.
 
-The public validation matrix covers 142 non-empty subject files, 3,008 trials,
-and more than 3.32 billion scalar neural values across six public archives.
-All requested structural, numerical, MNE PSD, stimulus-view, and controlled
-round-trip checks passed. See the
-[research milestone report](docs/research-milestone-report.md) for the exact
-claims and limitations.
+The expanded public validation matrix covers every downloadable CND collection
+linked by the official catalogue: 1,026 neural CND files across 18 report
+groups. A total of 1,017 files pass structural, numerical, MNE PSD,
+stimulus-view, and controlled round-trip checks over 17,774 parsed trials and
+11.29 billion scalar neural values. The nine documented source-data failures
+are eight all-empty BabyRhythm files and one truncated HDF5 file in the
+authoritative SparrKULee1 ZIP. See the machine-generated
+[catalogue summary](docs/results/catalog-summary.json) and
+[verification notes](docs/results/README.md) for exact claims and limitations.
 
 The prototype currently supports EEG and the observed CND fNIRS layout.
 MATLAB v7.3/HDF5 writing, automatic unit discovery, automatic coordinate
@@ -178,6 +181,6 @@ uv run ruff format --check .
 ```
 
 Large public datasets are intentionally excluded from Git history. They are
-available as checksum-verified GitHub release assets for local integration
-tests. CI uses the small, committed and regeneratable MATLAB fixture under
-`tests/data/`.
+available from their original public sources; committed checksum manifests
+record the exact files used for local integration tests. CI uses the small,
+committed and regeneratable MATLAB fixture under `tests/data/`.

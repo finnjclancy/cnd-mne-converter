@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "source_url": "https://www.data.cnspworkshop.net/data/datasetCND_diliBach.zip",
+  "archive_name": "datasetCND_diliBach.zip",
+  "total_bytes": 5985249030,
+  "sha256": "f871dcb040e03339bf693b6b4d093e40afea048b25f5da6989861c2cf54dc47b",
+  "zip_integrity_verified": true,
+  "archive_file_count": 25,
+  "downloaded_extracted_and_verified": true
+}

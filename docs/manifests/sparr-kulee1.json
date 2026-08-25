@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source_url": "https://www.data.cnspworkshop.net/data/SparrKULee1.zip",
+  "archive_name": "SparrKULee1.zip",
+  "total_bytes": 9354534642,
+  "sha256": "b8c2bd298d8bbe5f348d5fcb6653cb686653685f8e09950fe4dccba4971e1119",
+  "zip_integrity_verified": true,
+  "archive_file_count": 80,
+  "downloaded_extracted_and_verified": true,
+  "upstream_issue": {
+    "path": "SparrKULee1/dataCND/dataSub48.mat",
+    "archive_entry_bytes": 27776464,
+    "sha256": "c107f53010c149b533522fcbe7da01e7c00b24eda5e80eeda5c184d26bee84ac",
+    "zip_crc32": "cdd89aaa",
+    "reason": "The ZIP entry passes CRC, but its HDF5 superblock reports a stored EOF beyond the available file. The authoritative archive therefore contains a truncated MATLAB v7.3 file."
+  }
+}

@@ -461,6 +461,21 @@ def test_one_sample_multichannel_trial_is_restored_after_matlab_squeeze(
     np.testing.assert_array_equal(neural.trials[1], [[4.0, 5.0]])
 
 
+def test_empty_original_trial_positions_mean_absent(tmp_path) -> None:
+    neural = cnd_io._parse_neural(
+        {
+            "data": [np.ones((3, 2))],
+            "fs": 10.0,
+            "dataType": "EEG",
+            "origTrialPosition": np.array([]),
+        },
+        "eeg",
+        tmp_path / "empty-order.mat",
+    )
+
+    assert neural.original_trial_positions is None
+
+
 def test_topomap_layout_uses_real_channels_and_preserves_raw_layout(tmp_path) -> None:
     layout = {
         "label": np.array(["Cz", "Pz", "COMNT", "SCALE"], dtype=object),

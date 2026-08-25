@@ -2,6 +2,7 @@
 
 ## CND
 
+- [Di Liberto Lab Open Science dataset catalogue](https://diliberg.net/)
 - [CND specifications](https://data.cnspworkshop.net/CND_Specifications.pdf)
 - [CNSP workshop resources](https://cnspworkshop.net/workshops.html)
 - [CNSP 2025 videos](https://cnspworkshop.net/videos2025.html)
@@ -9,6 +10,14 @@
 - [AliceSpeech CND dataset](https://www.data.cnspworkshop.net/data/AliceSpeech.zip)
 - [AAD KULeuven CND dataset](https://www.data.cnspworkshop.net/data/AAD_KULeuven.zip)
 - [Music Imagery CND dataset](https://www.data.cnspworkshop.net/data/datasetCND_musicImagery.zip)
+- [SparrKULee1 CND dataset](https://www.data.cnspworkshop.net/data/SparrKULee1.zip)
+- [DiliBach CND dataset](https://www.data.cnspworkshop.net/data/datasetCND_diliBach.zip)
+- [FDSpeech L1/L2 OSF project](https://osf.io/ba3p4/)
+- [VocodedSpeech OSF project](https://osf.io/gx6rm/)
+- [ChildStories OSF project](https://osf.io/c3agw/)
+- [BabyRhythm OSF project](https://osf.io/mdnwg/)
+- [PolyphonicBach OSF project](https://osf.io/bjdh6/)
+- [Podcast fNIRS OSF project](https://osf.io/vsb8h/)
 
 ## Existing Python implementations
 

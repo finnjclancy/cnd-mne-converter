@@ -7,7 +7,7 @@ during the automated test suite?* It does not measure the percentage of CND
 datasets supported, prove scientific correctness, or show that every possible
 MATLAB representation has been observed.
 
-The current suite has 82 passing tests and 98.13% statement coverage. The
+The current suite has 94 passing tests and 97.15% statement coverage. The
 remaining statements are principally defensive guards that follow earlier
 validation, process-entry code, a filesystem race check, and fallback behavior
 for an environment in which package metadata is unavailable. Forcing these
@@ -53,7 +53,8 @@ which bytes were tested.
 - Broader MATLAB v7.3/HDF5 layout coverage and v7.3 writing.
 - Explicit mappings for external channel types such as EOG and mastoids.
 - Padding-aware neural/stimulus alignment semantics.
-- Broader modality support (MEG and fNIRS) and TRF-result interchange.
+- Broader modality support beyond EEG and the observed fNIRS layout, including
+  MEG, and TRF-result interchange.
 - An agreed public API reviewed by the CND and MNE maintainers.
 
 These are scientific or interoperability questions. Reaching 100% statement

@@ -1,9 +1,8 @@
 # Observed public dataset compatibility
 
-The table below records a structural scan of every subject file in six public
-archives, plus the linked Podcast fNIRS collection. This is not scientific
-validation of the datasets or their physical units. The remaining catalogue
-downloads are tracked in the full-catalogue verification work.
+The table below records a structural scan of every downloadable CND collection
+linked by the public catalogue. This is not scientific validation of the
+datasets or their physical units.
 
 | Dataset | Subjects scanned | Trials per subject | Neural / stimulus rate | Channels | Features | Important variation | Prototype result |
 | --- | ---: | ---: | --- | ---: | ---: | --- | --- |
@@ -20,12 +19,14 @@ downloads are tracked in the full-catalogue verification work.
 | FDSpeech L1 | 25 | 15 | 100 / 100 Hz | 64 | 12 | `pre_dataSubN.mat` names; feature streams often differ by one sample | All 25 subjects pass with 305 feature-length warnings retained |
 | FDSpeech L2 | 25 | 13–15 | 100 / 100 Hz | 64 | 12 | Fifteen files use a 66-entry topomap layout containing 64 channels plus `COMNT` and `SCALE`; one neural/stimulus trial-count mismatch | All 25 subjects pass after separating real channels from layout drawing helpers |
 | PolyphonicBach | 31 | 32 | 64 / 128 Hz | 24 | 48 | Sparse left/right musical features, one duplicated composite name, MATLAB v7.3 files, and a one-sample 24-channel trial | All 31 subjects pass after preserving sparse features and resolving the squeezed one-sample trial |
+| DiliBach | 20 | 30 | 512 / 64 Hz | 64 | 7 | Empty `origTrialPosition` fields mean absent metadata; musical pitch/onset features; large clock difference | All 20 subjects pass after normalizing empty optional order metadata to `None` |
+| SparrKULee1 | 78 files | 1–11 | 64 Hz / no stimulus in archive | 64 | 0 | MATLAB v7.3, external mastoids, irregular subject numbering; subject 48 is a CRC-valid but internally truncated HDF5 file | 77 files pass; subject 48 is an unrecoverable upstream source corruption |
 
-All 142 non-empty subject files parsed without structural validation errors.
-Across 3,008 trials, all neural and stimulus MNE views, Welch PSD smoke checks, and controlled
-round trips passed with zero numerical error under the explicitly recorded `V`
-identity-test assumption. This assumption tests software behavior; it is not a
-scientific assertion about the source unit. See the [JSON evidence](results/README.md).
+Across all reports, 1,017 of 1,026 neural files pass their requested neural and
+stimulus MNE views, Welch PSD checks, and controlled round trips with zero
+numerical error under explicitly recorded identity-test assumptions. Eight
+all-empty BabyRhythm files and one truncated SparrKULee1 HDF5 file are source
+failures. See the [JSON evidence](results/README.md).
 
 ## Cross-dataset findings
 
@@ -71,6 +72,13 @@ scientific assertion about the source unit. See the [JSON evidence](results/READ
 16. Sparse features can be meaningful. PolyphonicBach's absent left/right
     musical parts remain zero-sample stimulus views; duplicate source names are
     preserved and indexed access remains unambiguous.
+17. Empty optional arrays mean absent metadata. DiliBach stores
+    `origTrialPosition=[]`; this now maps to `None` instead of a real zero-item
+    trial-order vector.
+18. Archive integrity does not prove each nested scientific file is complete.
+    SparrKULee1's ZIP and the `dataSub48.mat` entry both pass CRC, but HDF5
+    reports that the file ends before its stored EOF. The missing bytes cannot
+    be reconstructed by the converter.
 
 ## Test levels
 
