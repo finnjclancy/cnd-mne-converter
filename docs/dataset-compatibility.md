@@ -14,6 +14,7 @@ downloads are tracked in the full-catalogue verification work.
 | LalorRevSpeech | 10 | 20 | 128 / 128 Hz | 128 | 2 | Time-reversed speech, mastoids, channel locations, and large legacy duration differences | Full MNE and round-trip matrix passes with explicit warnings |
 | SparrKULee2 | 56 non-empty | 1–5 | 64 / 64 Hz | 64 | 1 | MATLAB v7.3/HDF5; subject-specific stimulus files; two mastoid groups; one 0-byte subject placeholder in the official archive | All 56 usable subjects pass MNE and round-trip checks; placeholder is recorded and skipped |
 | Podcast fNIRS | 8 | 28 | 25 / 10 Hz | 48 (16 HbO, 16 HbR, 16 HbT) | 5 | Neural data is a 3 x 28 signal-type grid rather than a simple trial row; no channel locations; fixed neural windows exceed paired stimulus durations | Full MNE and template round-trip matrix passes after lossless block normalization; differences remain warnings |
+| ChildStories-Sysoeva | 52 | 2–3 | 500 / 500 Hz | 31 | 3 | Named `dataParticipant_ID.mat` and `dataStim_ID.mat` pairs; feature and condition labels stored as opaque MATLAB MCOS strings | All 52 participants pass after decoding MCOS labels from the embedded workspace |
 
 All 142 non-empty subject files parsed without structural validation errors.
 Across 3,008 trials, all neural and stimulus MNE views, Welch PSD smoke checks, and controlled
@@ -42,6 +43,10 @@ scientific assertion about the source unit. See the [JSON evidence](results/READ
     HbR, and HbT as rows of a signal-type x trial cell grid. Flattening that
     grid incorrectly creates 84 trials; the reader now combines each column
     into one 48-channel trial and retains block boundaries for export.
+11. Modern MATLAB strings can appear in otherwise v5 `.mat` files.
+    ChildStories stores six scientific labels as opaque MCOS handles. The
+    reader resolves their one-based metadata indices against the embedded
+    UTF-16LE function workspace instead of exposing object IDs as labels.
 
 ## Test levels
 

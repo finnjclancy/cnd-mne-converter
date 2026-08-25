@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
@@ -190,7 +191,55 @@ def _load_mat(path: Path) -> dict[str, Any]:
                     f"Could not read MATLAB v7.3/HDF5 file {path}: {hdf_error}"
                 ) from hdf_error
         raise CNDReadError(f"Could not read MATLAB file {path}: {error}") from error
+    workspace = data.pop("__function_workspace__", None)
+    if workspace is not None:
+        data = _decode_mcos_strings(data, workspace)
     return {key: value for key, value in data.items() if key not in _MATLAB_METADATA}
+
+
+def _decode_mcos_strings(value: Any, workspace: Any) -> Any:
+    """Resolve MATLAB MCOS string handles using the embedded v5 workspace.
+
+    MATLAB's modern ``string`` class is stored as an opaque object plus a
+    ``__function_workspace__`` byte array. SciPy intentionally exposes the
+    handle. For the observed CND files, the fifth metadata word is a one-based
+    index into the UTF-16LE strings in that workspace.
+    """
+    raw = np.asarray(workspace, dtype=np.uint8).tobytes()
+    strings = tuple(
+        match.group().decode("utf-16le")
+        for match in re.finditer(rb"(?:[\x20-\x7e]\x00){2,}", raw)
+    )
+    if not strings:
+        return value
+
+    def resolve(item: Any) -> Any:
+        if isinstance(item, Mapping):
+            return {key: resolve(child) for key, child in item.items()}
+        if isinstance(item, list):
+            return [resolve(child) for child in item]
+        if isinstance(item, tuple):
+            return tuple(resolve(child) for child in item)
+        array = np.asarray(item) if isinstance(item, np.ndarray) else None
+        if array is not None and array.dtype.names:
+            fields = set(array.dtype.names)
+            if {"_Class", "_ObjectMetadata"} <= fields:
+                class_name = str(np.asarray(array["_Class"]).ravel()[0])
+                metadata_value = np.asarray(array["_ObjectMetadata"]).ravel()[0]
+                metadata = np.asarray(metadata_value).ravel()
+                if class_name == "string" and metadata.size >= 5:
+                    index = int(metadata[4]) - 1
+                    if 0 <= index < len(strings):
+                        return strings[index]
+            return item
+        if array is not None and array.dtype == object:
+            output = np.empty(array.shape, dtype=object)
+            for index in np.ndindex(array.shape):
+                output[index] = resolve(array[index])
+            return output
+        return item
+
+    return resolve(value)
 
 
 def _find_neural_key(variables: Mapping[str, Any]) -> str | None:

@@ -407,3 +407,24 @@ def test_small_path_and_scalar_helpers(tmp_path) -> None:
     assert cnd_io._subject_from_filename(tmp_path / "recording.mat") is None
     assert cnd_io._string_or_default(1, "EEG") == "EEG"
     assert cnd_io._matlab_value(None).shape == (0, 0)
+
+
+def test_mcos_string_handles_are_decoded_from_workspace() -> None:
+    dtype = [("_TypeSystem", object), ("_Class", object), ("_ObjectMetadata", object)]
+    handles = np.empty(2, dtype=object)
+    for index in range(2):
+        handle = np.empty(1, dtype=dtype)
+        handle[0] = ("MCOS", "string", np.array([0, 2, 1, 1, index + 1, 1]))
+        handles[index] = handle
+    workspace = np.frombuffer(
+        b"prefix"
+        + "Speech Envelope".encode("utf-16le")
+        + b"\xff"
+        + "Word Onsets".encode("utf-16le")
+        + b"\xff",
+        dtype=np.uint8,
+    )
+
+    decoded = cnd_io._decode_mcos_strings({"names": handles}, workspace)
+
+    assert tuple(decoded["names"]) == ("Speech Envelope", "Word Onsets")
