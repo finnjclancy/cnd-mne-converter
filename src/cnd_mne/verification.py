@@ -114,7 +114,24 @@ class DatasetVerification:
             "n_skipped_empty_files": len(self.skipped_empty_files),
             "n_subjects": len(self.subjects),
             "n_failed_subjects": sum(
-                subject.failure is not None or bool(subject.validation_errors)
+                subject.failure is not None
+                or bool(subject.validation_errors)
+                or (
+                    self.neural_unit_assumption is not None
+                    and (
+                        not subject.mne_created
+                        or not subject.mne_shape_verified
+                        or subject.stimulus_mne_views_verified is False
+                        or (
+                            self.round_trip_requested
+                            and not subject.round_trip_verified
+                        )
+                        or (
+                            self.mne_smoke_test_requested
+                            and subject.mne_psd_finite is not True
+                        )
+                    )
+                )
                 for subject in self.subjects
             ),
             "n_trials": sum(subject.n_trials for subject in self.subjects),
@@ -285,7 +302,8 @@ def _verify_subject(
 
         psd_finite = None
         if mne_smoke_test:
-            psd_finite = _mne_psd_is_finite(converted.raws[0])
+            nonempty = next((raw for raw in converted.raws if raw.n_times), None)
+            psd_finite = _mne_psd_is_finite(nonempty) if nonempty is not None else False
 
         stimulus_views_verified = None
         if stimulus is not None:

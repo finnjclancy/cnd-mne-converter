@@ -12,6 +12,8 @@ import hashlib
 import json
 import os
 import sys
+import time
+import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path, PurePosixPath
@@ -44,6 +46,7 @@ def _list_folder(url: str, prefix: PurePosixPath | None = None) -> list[dict[str
                     "size": int(attributes.get("size") or 0),
                     "sha256": hashes.get("sha256"),
                     "download": item["links"]["download"],
+                    "api": item["links"].get("self"),
                 }
             )
         next_url = document.get("links", {}).get("next")
@@ -92,7 +95,23 @@ def _sha256(path: Path) -> str:
 
 
 def _download_and_verify(file: dict[str, Any], destination: Path) -> str:
-    _download(file, destination)
+    for attempt in range(1, 6):
+        try:
+            _download(file, destination)
+            break
+        except urllib.error.HTTPError as error:
+            if attempt == 5:
+                raise
+            if error.code == 403 and file.get("api"):
+                # OSF's storage download links are signed and can expire while
+                # a large inventory is queued. Refresh this file through its
+                # stable API URL, then resume the partial transfer.
+                file["download"] = _json(file["api"])["data"]["links"]["download"]
+            time.sleep(attempt)
+        except (OSError, urllib.error.URLError):
+            if attempt == 5:
+                raise
+            time.sleep(attempt)
     actual_hash = _sha256(_target(destination, file["path"]))
     expected_hash = file["sha256"]
     if expected_hash is not None and actual_hash != expected_hash:

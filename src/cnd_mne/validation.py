@@ -81,7 +81,14 @@ def validate_cnd(
                 )
                 continue
             if array.shape[0] == 0 or array.shape[1] == 0:
-                issues.append(_error("empty_neural_trial", path, "Trial is empty"))
+                issues.append(
+                    _spec_issue(
+                        strict_spec,
+                        "empty_neural_trial",
+                        path,
+                        "Trial is empty; retained as a zero-sample trial",
+                    )
+                )
             if expected_channels is None:
                 expected_channels = int(array.shape[1])
             elif array.shape[1] != expected_channels:
@@ -328,7 +335,8 @@ def validate_cnd(
     if neural is not None and stimulus is not None:
         if neural.n_trials != stimulus.n_trials:
             issues.append(
-                _error(
+                _spec_issue(
+                    strict_spec,
                     "paired_trial_count",
                     "$",
                     f"Neural has {neural.n_trials} trials; "

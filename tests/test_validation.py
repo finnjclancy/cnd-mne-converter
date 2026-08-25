@@ -197,9 +197,13 @@ def test_paired_trial_and_feature_length_mismatches(sample_recording) -> None:
         issue.code == "feature_length_mismatch"
         for issue in validate_cnd(CNDRecording(stimulus=unequal_features)).errors
     )
+    recording = CNDRecording(sample_recording.neural, paired)
+    assert any(
+        issue.code == "paired_trial_count" for issue in validate_cnd(recording).warnings
+    )
     assert any(
         issue.code == "paired_trial_count"
-        for issue in validate_cnd(CNDRecording(sample_recording.neural, paired)).errors
+        for issue in validate_cnd(recording, strict_spec=True).errors
     )
 
 
@@ -209,6 +213,15 @@ def test_empty_neural_trials_are_reported() -> None:
     report = validate_cnd(CNDRecording(neural=neural))
 
     assert any(issue.code == "missing_trials" for issue in report.errors)
+
+    partial = CNDRecording(neural=CNDNeural(trials=(np.empty((0, 2)),), sfreq=100.0))
+    assert any(
+        issue.code == "empty_neural_trial" for issue in validate_cnd(partial).warnings
+    )
+    assert any(
+        issue.code == "empty_neural_trial"
+        for issue in validate_cnd(partial, strict_spec=True).errors
+    )
 
 
 def test_paired_recording_without_stimulus_features_is_validated(

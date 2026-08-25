@@ -15,6 +15,7 @@ downloads are tracked in the full-catalogue verification work.
 | SparrKULee2 | 56 non-empty | 1–5 | 64 / 64 Hz | 64 | 1 | MATLAB v7.3/HDF5; subject-specific stimulus files; two mastoid groups; one 0-byte subject placeholder in the official archive | All 56 usable subjects pass MNE and round-trip checks; placeholder is recorded and skipped |
 | Podcast fNIRS | 8 | 28 | 25 / 10 Hz | 48 (16 HbO, 16 HbR, 16 HbT) | 5 | Neural data is a 3 x 28 signal-type grid rather than a simple trial row; no channel locations; fixed neural windows exceed paired stimulus durations | Full MNE and template round-trip matrix passes after lossless block normalization; differences remain warnings |
 | ChildStories-Sysoeva | 52 | 2–3 | 500 / 500 Hz | 31 | 3 | Named `dataParticipant_ID.mat` and `dataStim_ID.mat` pairs; feature and condition labels stored as opaque MATLAB MCOS strings | All 52 participants pass after decoding MCOS labels from the embedded workspace |
+| BabyRhythm | 632 files / 158 participants | Up to 18 | 50 / 50 Hz | 58 | 4 | Four preprocessing variants per participant across adult, 4-, 7-, and 11-month cohorts; shared parent stimulus; retained rejected/empty trials | 624 files pass; 8 files for two 4-month participants contain no neural samples and are documented as unusable source files |
 
 All 142 non-empty subject files parsed without structural validation errors.
 Across 3,008 trials, all neural and stimulus MNE views, Welch PSD smoke checks, and controlled
@@ -47,6 +48,11 @@ scientific assertion about the source unit. See the [JSON evidence](results/READ
     ChildStories stores six scientific labels as opaque MCOS handles. The
     reader resolves their one-based metadata indices against the embedded
     UTF-16LE function workspace instead of exposing object IDs as labels.
+12. Empty cells can encode rejected infant trials. In tolerant mode they are
+    retained as zero-sample MNE trials, excluded from the PSD smoke-test choice,
+    and reported as warnings; strict CND validation rejects them. Eight 4-month
+    files (participants 8 and 13, four preprocessing variants each) contain no
+    neural samples at all, so analysis is impossible without fabricating data.
 
 ## Test levels
 

@@ -428,3 +428,17 @@ def test_mcos_string_handles_are_decoded_from_workspace() -> None:
     decoded = cnd_io._decode_mcos_strings({"names": handles}, workspace)
 
     assert tuple(decoded["names"]) == ("Speech Envelope", "Word Onsets")
+
+
+def test_empty_neural_cells_retain_inferred_channel_count(tmp_path) -> None:
+    neural = cnd_io._parse_neural(
+        {
+            "data": [np.ones((3, 2)), np.array([])],
+            "fs": 10.0,
+            "dataType": "EEG",
+        },
+        "eeg",
+        tmp_path / "partial.mat",
+    )
+
+    assert [trial.shape for trial in neural.trials] == [(3, 2), (0, 2)]

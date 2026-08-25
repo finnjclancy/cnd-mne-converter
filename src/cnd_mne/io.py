@@ -257,15 +257,20 @@ def _find_neural_key(variables: Mapping[str, Any]) -> str | None:
 def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
     if not isinstance(value, Mapping):
         raise CNDReadError(f"{source}:{variable_name} is not a MATLAB structure")
+    channel_locations = _parse_channel_locations(value.get("chanlocs"))
     try:
-        trials, signal_types, channels_per_signal_type = _parse_neural_trials(value)
+        trials, signal_types, channels_per_signal_type = _parse_neural_trials(
+            value,
+            channel_count_hint=(
+                len(channel_locations) if channel_locations is not None else None
+            ),
+        )
         sfreq = float(_scalar(value["fs"]))
     except KeyError as error:
         raise CNDReadError(
             f"{source}:{variable_name} is missing {error.args[0]!r}"
         ) from error
 
-    channel_locations = _parse_channel_locations(value.get("chanlocs"))
     external_trials: tuple[np.ndarray, ...] | None = None
     external_description: str | None = None
     external_fields: dict[str, Any] = {}
@@ -356,6 +361,7 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
 
 def _parse_neural_trials(
     value: Mapping[str, Any],
+    channel_count_hint: int | None = None,
 ) -> tuple[tuple[np.ndarray, ...], tuple[str, ...] | None, tuple[int, ...] | None]:
     """Normalize ordinary trials and fNIRS signal-type x trial cell grids."""
     data = value["data"]
@@ -396,7 +402,7 @@ def _parse_neural_trials(
                 blocks.append(block)
             trials.append(np.concatenate(blocks, axis=1))
         return tuple(trials), signal_types, tuple(block_counts)
-    return _as_matrix_trial_tuple(data), None, None
+    return _as_matrix_trial_tuple(data, channel_count_hint), None, None
 
 
 def _parse_stimulus(value: Any, source: Path) -> CNDStimulus:
@@ -457,12 +463,28 @@ def _as_trial_tuple(value: Any) -> tuple[np.ndarray, ...]:
     raise CNDReadError(f"Cannot interpret neural data with shape {array.shape}")
 
 
-def _as_matrix_trial_tuple(value: Any) -> tuple[np.ndarray, ...]:
+def _as_matrix_trial_tuple(
+    value: Any, channel_count_hint: int | None = None
+) -> tuple[np.ndarray, ...]:
     """Read neural-style trials and restore squeezed one-channel matrices."""
-    return tuple(
-        array[:, np.newaxis] if array.ndim == 1 else array
-        for array in _as_trial_tuple(value)
+    arrays = _as_trial_tuple(value)
+    observed_counts = {
+        int(array.shape[1])
+        for array in arrays
+        if array.ndim == 2 and array.shape[1] > 0
+    }
+    inferred_channels = (
+        next(iter(observed_counts)) if len(observed_counts) == 1 else channel_count_hint
     )
+    output: list[np.ndarray] = []
+    for array in arrays:
+        if array.ndim == 1 and array.size == 0 and inferred_channels is not None:
+            output.append(np.empty((0, inferred_channels), dtype=array.dtype))
+        elif array.ndim == 1:
+            output.append(array[:, np.newaxis])
+        else:
+            output.append(array)
+    return tuple(output)
 
 
 def _as_feature_tuple(

@@ -6,7 +6,7 @@ import mne
 import numpy as np
 import pytest
 
-from cnd_mne import verify_dataset, write_cnd
+from cnd_mne import CNDNeural, CNDRecording, verify_dataset, write_cnd
 from cnd_mne.cli import main
 from cnd_mne.verification import _mne_psd_is_finite
 
@@ -129,3 +129,32 @@ def test_psd_smoke_test_rejects_single_sample() -> None:
     )
 
     assert not _mne_psd_is_finite(raw)
+
+
+def test_verifier_preserves_partial_trials_and_rejects_all_empty(tmp_path) -> None:
+    partial = CNDRecording(
+        neural=CNDNeural(
+            trials=(np.empty((0, 2)), np.ones((4, 2))),
+            sfreq=10.0,
+            data_unit="V",
+        )
+    )
+    write_cnd(partial, tmp_path / "partial")
+    partial_report = verify_dataset(tmp_path / "partial", neural_unit="V")
+
+    assert partial_report.passed
+    assert partial_report.subjects[0].mne_psd_finite
+    assert partial_report.subjects[0].warning_counts["empty_neural_trial"] == 1
+
+    empty = CNDRecording(
+        neural=CNDNeural(
+            trials=(np.empty((0, 2)),),
+            sfreq=10.0,
+            data_unit="V",
+        )
+    )
+    write_cnd(empty, tmp_path / "empty")
+    empty_report = verify_dataset(tmp_path / "empty", neural_unit="V")
+
+    assert not empty_report.passed
+    assert empty_report.to_dict()["summary"]["n_failed_subjects"] == 1
