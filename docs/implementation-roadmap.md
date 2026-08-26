@@ -69,6 +69,10 @@ answer.
 - Linux, macOS, Windows, minimum-MNE, and latest-MNE CI coverage.
 - Licence, citation, changelog, contribution, security, scientific validation,
   and maintainer-decision documentation.
+- Official CND 1.0 field-by-field audit, multimodal variable selection and
+  preservation, and lossless legacy/named external-channel layouts.
+- Executed compatibility checks against NAPlib 2.6.0 and Eelbrain 0.41.2,
+  including documented limitations in those reference readers.
 
 ## Phase 3: broaden compatibility
 

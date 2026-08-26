@@ -12,6 +12,9 @@ must be agreed with the CND and MNE maintainers.
 - Read and write MATLAB v5 and v7.3/HDF5 CND files.
 - Preserve variable-length and empty trials, independent stimulus clocks,
   conditions, original trial positions, external data, and extension fields.
+- Select among multiple recording modalities without discarding unselected
+  top-level variables, and reconstruct both legacy and CND 1.0 external-channel
+  layouts.
 - Convert supported EEG and observed fNIRS layouts into MNE objects using
   explicit physical units.
 - Provide continuous stimulus views, opt-in event annotations, external-channel
@@ -30,13 +33,22 @@ must be agreed with the CND and MNE maintainers.
 
 As of 26 August 2026:
 
-- 110 automated tests pass;
-- statement coverage is 96.23%;
+- 116 automated tests pass;
+- statement coverage is 95.34%;
 - Ruff lint and format checks pass;
 - Mypy passes for the typed public package, which includes a `py.typed` marker;
 - the installed dependency set passes `uv pip check`;
+- locked runtime dependencies have no vulnerabilities reported by `pip-audit`,
+  and Bandit reports no source findings;
 - MATLAB v5 and v7.3 serialized round trips pass on the committed fixture; and
+- NAPlib 2.6.0 independently loads the committed fixture with the expected
+  neural trial shapes; Eelbrain 0.41.2 loads its core EEG representation after
+  removing two layouts that its narrower reader does not support; and
 - the repository has no known converter defect among readable public files.
+
+CI repeats the dependency and source audits so later dependency or code changes
+cannot silently invalidate this result. Dependabot is configured for monthly
+Python-package and GitHub Actions update proposals.
 
 ## Decisions that cannot be made safely in code
 

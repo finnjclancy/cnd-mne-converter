@@ -16,7 +16,7 @@ from scipy.io.matlab import MatReadError
 
 from .exceptions import CNDReadError
 from .mat73 import is_mat73, load_mat73
-from .model import CNDNeural, CNDPaths, CNDRecording, CNDStimulus
+from .model import CNDNeural, CNDPaths, CNDRecording, CNDStimulus, ExternalLayout
 from .validation import validate_cnd
 
 _MATLAB_METADATA = {"__header__", "__version__", "__globals__"}
@@ -53,6 +53,7 @@ def read_cnd(
     stimulus_path: str | Path | None = None,
     subject: str | int | None = None,
     load_stimulus: bool = True,
+    neural_variable: str | None = None,
 ) -> CNDRecording:
     """Read a CND directory or individual ``.mat`` file.
 
@@ -67,14 +68,19 @@ def read_cnd(
         inferred_stimulus = _resolve_stimulus_file(
             data_directory, subject, required=False
         )
-        neural = read_cnd_neural(neural_path) if neural_path is not None else None
+        if neural_path is not None:
+            neural, additional_variables = _read_neural_file(
+                neural_path, neural_variable
+            )
+        else:
+            neural, additional_variables = None, {}
         selected_stimulus = stimulus_path or inferred_stimulus
         stimulus = (
             read_cnd_stimulus(selected_stimulus)
             if load_stimulus and selected_stimulus is not None
             else None
         )
-        recording = CNDRecording(neural, stimulus)
+        recording = CNDRecording(neural, stimulus, additional_variables)
         validate_cnd(recording).raise_for_errors()
         return recording
 
@@ -82,7 +88,7 @@ def read_cnd(
         raise FileNotFoundError(source)
 
     variables = _load_mat(source)
-    neural_key = _find_neural_key(variables)
+    neural_key = _select_neural_key(variables, neural_variable, source)
     if neural_key is not None:
         neural = _parse_neural(variables[neural_key], neural_key, source)
         resolved_stimulus: Path | None = None
@@ -92,12 +98,20 @@ def read_cnd(
             resolved_stimulus = _resolve_stimulus_file(
                 source.parent, _subject_from_filename(source), required=False
             )
-        stimulus = (
-            read_cnd_stimulus(resolved_stimulus)
-            if resolved_stimulus is not None
-            else None
-        )
-        recording = CNDRecording(neural, stimulus)
+        if "stim" in variables:
+            stimulus = _parse_stimulus(variables["stim"], source)
+        else:
+            stimulus = (
+                read_cnd_stimulus(resolved_stimulus)
+                if resolved_stimulus is not None
+                else None
+            )
+        additional_variables = {
+            key: value
+            for key, value in variables.items()
+            if key not in {neural_key, "stim"}
+        }
+        recording = CNDRecording(neural, stimulus, additional_variables)
     elif "stim" in variables:
         recording = CNDRecording(stimulus=_parse_stimulus(variables["stim"], source))
     else:
@@ -107,14 +121,17 @@ def read_cnd(
     return recording
 
 
-def read_cnd_neural(path: str | Path) -> CNDNeural:
+def read_cnd_neural(path: str | Path, *, variable_name: str | None = None) -> CNDNeural:
     """Read one subject-specific CND neural file."""
     source = Path(path).expanduser()
-    variables = _load_mat(source)
-    key = _find_neural_key(variables)
-    if key is None:
-        raise CNDReadError(f"{source} does not contain a recognizable neural structure")
-    return _parse_neural(variables[key], key, source)
+    neural, _ = _read_neural_file(source, variable_name)
+    return neural
+
+
+def available_neural_variables(path: str | Path) -> tuple[str, ...]:
+    """List CND recording-modality variables available in a MATLAB file."""
+    source = Path(path).expanduser()
+    return _find_neural_keys(_load_mat(source))
 
 
 def read_cnd_stimulus(path: str | Path) -> CNDStimulus:
@@ -167,15 +184,21 @@ def write_cnd(
     output_dir.mkdir(parents=True, exist_ok=True)
     planned_outputs: list[tuple[Path, dict[str, Any]]] = []
     if recording.neural is not None:
-        assert neural_path is not None
+        if neural_path is None:  # Defensive guard for future path-planning changes.
+            raise RuntimeError("Neural output path was not planned")
+        neural_payload = dict(recording.additional_variables)
+        neural_payload[recording.neural.variable_name] = _neural_to_mat(
+            recording.neural
+        )
         planned_outputs.append(
             (
                 neural_path,
-                {recording.neural.variable_name: _neural_to_mat(recording.neural)},
+                neural_payload,
             )
         )
     if recording.stimulus is not None:
-        assert stimulus_path is not None
+        if stimulus_path is None:  # Defensive guard for future path-planning changes.
+            raise RuntimeError("Stimulus output path was not planned")
         planned_outputs.append(
             (stimulus_path, {"stim": _stimulus_to_mat(recording.stimulus)})
         )
@@ -258,16 +281,50 @@ def _decode_mcos_strings(value: Any, workspace: Any) -> Any:
     return resolve(value)
 
 
-def _find_neural_key(variables: Mapping[str, Any]) -> str | None:
+def _find_neural_keys(variables: Mapping[str, Any]) -> tuple[str, ...]:
     preferred = ("eeg", "meg", "nirs", "fnirs", "ieeg", "neural")
+    found: list[str] = []
     for key in preferred:
         value = variables.get(key)
         if isinstance(value, Mapping) and "data" in value and "fs" in value:
-            return key
+            found.append(key)
     for key, value in variables.items():
-        if isinstance(value, Mapping) and {"data", "fs", "dataType"} <= set(value):
-            return key
-    return None
+        if (
+            key not in found
+            and key != "stim"
+            and isinstance(value, Mapping)
+            and {"data", "fs"} <= set(value)
+        ):
+            found.append(key)
+    return tuple(found)
+
+
+def _select_neural_key(
+    variables: Mapping[str, Any], variable_name: str | None, source: Path
+) -> str | None:
+    keys = _find_neural_keys(variables)
+    if variable_name is None:
+        return keys[0] if keys else None
+    if variable_name not in keys:
+        available = ", ".join(keys) if keys else "none"
+        raise CNDReadError(
+            f"{source} has no neural variable {variable_name!r}; available: {available}"
+        )
+    return variable_name
+
+
+def _read_neural_file(
+    source: Path, variable_name: str | None
+) -> tuple[CNDNeural, dict[str, Any]]:
+    variables = _load_mat(source)
+    key = _select_neural_key(variables, variable_name, source)
+    if key is None:
+        raise CNDReadError(f"{source} does not contain a recognizable neural structure")
+    neural = _parse_neural(variables[key], key, source)
+    additional = {
+        name: value for name, value in variables.items() if name not in {key, "stim"}
+    }
+    return neural, additional
 
 
 def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
@@ -292,9 +349,14 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
     external_trials: tuple[np.ndarray, ...] | None = None
     external_description: str | None = None
     external_fields: dict[str, Any] = {}
+    external_layout: ExternalLayout | None = None
+    external_group_names: tuple[str, ...] | None = None
+    external_group_channel_counts: tuple[int, ...] | None = None
+    external_group_fields: tuple[dict[str, Any], ...] | None = None
     external = value.get("extChan")
     if isinstance(external, Mapping) and "data" in external:
         external_trials = _as_matrix_trial_tuple(external["data"])
+        external_layout = "single_struct"
         if external.get("description") is not None:
             external_description = str(_scalar(external["description"]))
         external_fields = {
@@ -303,7 +365,19 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
             if key not in {"data", "description"}
         }
     elif isinstance(external, Mapping):
-        external_fields = dict(external)
+        named_groups = _parse_named_external_groups(external, len(trials))
+        if named_groups is None:
+            external_fields = dict(external)
+        else:
+            names, group_trials, counts = named_groups
+            external_trials = _combine_external_groups(
+                group_trials, source, variable_name
+            )
+            external_description = "; ".join(names)
+            external_layout = "named_fields"
+            external_group_names = names
+            external_group_channel_counts = counts
+            external_group_fields = tuple({} for _ in names)
     elif external is not None:
         groups = [
             item
@@ -312,31 +386,31 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
         ]
         if groups and len(groups) == np.atleast_1d(external).size:
             group_trials = [_as_matrix_trial_tuple(group["data"]) for group in groups]
-            if len({len(trials) for trials in group_trials}) != 1:
-                raise CNDReadError(
-                    f"{source}:{variable_name}.extChan groups have unequal trial counts"
-                )
-            external_trials = tuple(
-                np.concatenate([trials[index] for trials in group_trials], axis=1)
-                for index in range(len(group_trials[0]))
+            external_trials = _combine_external_groups(
+                group_trials, source, variable_name
             )
             descriptions = tuple(
-                str(_scalar(group["description"]))
+                (
+                    str(_scalar(group["description"]))
+                    if group.get("description") is not None
+                    else ""
+                )
                 for group in groups
-                if group.get("description") is not None
             )
-            external_description = "; ".join(descriptions) or None
-            external_fields = {
-                "groupDescriptions": descriptions,
-                "groupFields": tuple(
-                    {
-                        key: item
-                        for key, item in group.items()
-                        if key not in {"data", "description"}
-                    }
-                    for group in groups
-                ),
-            }
+            external_description = "; ".join(filter(None, descriptions)) or None
+            external_layout = "struct_array"
+            external_group_names = descriptions
+            external_group_channel_counts = tuple(
+                int(trials_for_group[0].shape[1]) for trials_for_group in group_trials
+            )
+            external_group_fields = tuple(
+                {
+                    key: item
+                    for key, item in group.items()
+                    if key not in {"data", "description"}
+                }
+                for group in groups
+            )
         else:
             external_fields = {"unparsedValue": external}
 
@@ -366,6 +440,10 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
         external_trials=external_trials,
         external_description=external_description,
         external_fields=external_fields,
+        external_layout=external_layout,
+        external_group_names=external_group_names,
+        external_group_channel_counts=external_group_channel_counts,
+        external_group_fields=external_group_fields,
         rereference=value.get("reRef"),
         padding_start_sample=value.get("paddingStartSample"),
         cnd_version=_optional_scalar(value.get("cndVersion")),
@@ -375,6 +453,57 @@ def _parse_neural(value: Any, variable_name: str, source: Path) -> CNDNeural:
         extra_fields=extras,
         variable_name=variable_name,
         source_path=source,
+    )
+
+
+def _parse_named_external_groups(
+    external: Mapping[str, Any], n_trials: int
+) -> tuple[tuple[str, ...], list[tuple[np.ndarray, ...]], tuple[int, ...]] | None:
+    """Parse CND 1.0's ``extChan.<type> = trial-cell-array`` layout."""
+    names: list[str] = []
+    groups: list[tuple[np.ndarray, ...]] = []
+    counts: list[int] = []
+    # MATLAB v5 preserves struct-field insertion order while HDF5-backed v7.3
+    # readers commonly return fields lexicographically. Canonicalize here so
+    # the combined channel order is stable across MAT encodings.
+    for name in sorted(external):
+        value = external[name]
+        try:
+            trials = _as_matrix_trial_tuple(value)
+        except (CNDReadError, TypeError, ValueError):
+            return None
+        if len(trials) != n_trials or any(trial.ndim != 2 for trial in trials):
+            return None
+        channel_counts = {int(trial.shape[1]) for trial in trials}
+        if len(channel_counts) != 1:
+            return None
+        names.append(str(name))
+        groups.append(trials)
+        counts.append(channel_counts.pop())
+    if not groups:
+        return None
+    return tuple(names), groups, tuple(counts)
+
+
+def _combine_external_groups(
+    group_trials: Sequence[tuple[np.ndarray, ...]],
+    source: Path,
+    variable_name: str,
+) -> tuple[np.ndarray, ...]:
+    if len({len(trials) for trials in group_trials}) != 1:
+        raise CNDReadError(
+            f"{source}:{variable_name}.extChan groups have unequal trial counts"
+        )
+    for trial_index in range(len(group_trials[0])):
+        lengths = {int(trials[trial_index].shape[0]) for trials in group_trials}
+        if len(lengths) != 1:
+            raise CNDReadError(
+                f"{source}:{variable_name}.extChan groups have unequal sample "
+                f"counts in trial {trial_index}"
+            )
+    return tuple(
+        np.concatenate([trials[index] for trials in group_trials], axis=1)
+        for index in range(len(group_trials[0]))
     )
 
 
@@ -628,14 +757,7 @@ def _neural_to_mat(neural: CNDNeural) -> dict[str, Any]:
             else _struct_array(neural.channel_locations)
         )
     if neural.external_trials is not None:
-        external = dict(neural.external_fields)
-        external.update(
-            {
-                "data": _cell_row(neural.external_trials),
-                "description": neural.external_description or "External channels",
-            }
-        )
-        result["extChan"] = external
+        result["extChan"] = _external_to_mat(neural)
     elif neural.external_fields:
         result["extChan"] = dict(neural.external_fields)
     if neural.rereference is not None:
@@ -649,6 +771,56 @@ def _neural_to_mat(neural: CNDNeural) -> dict[str, Any]:
     if neural.signal_types is not None:
         result["datatype"] = _cell_row(neural.signal_types)
     return _without_none(result)
+
+
+def _external_to_mat(neural: CNDNeural) -> Any:
+    trials = neural.external_trials
+    if trials is None:
+        raise CNDReadError("Cannot serialize absent external-channel trials")
+    layout = neural.external_layout or "single_struct"
+    if layout == "single_struct":
+        external = dict(neural.external_fields)
+        external.update(
+            {
+                "data": _cell_row(trials),
+                "description": neural.external_description or "External channels",
+            }
+        )
+        return external
+
+    names = neural.external_group_names
+    counts = neural.external_group_channel_counts
+    if names is None or counts is None or len(names) != len(counts):
+        raise CNDReadError(
+            f"external_layout={layout!r} requires matching group names and counts"
+        )
+    if sum(counts) != int(np.asarray(trials[0]).shape[1]):
+        raise CNDReadError("external group channel counts do not match external data")
+    stops = np.cumsum((0, *counts))
+    split_trials = tuple(
+        tuple(np.asarray(trial)[:, stops[index] : stops[index + 1]] for trial in trials)
+        for index in range(len(counts))
+    )
+    if layout == "named_fields":
+        return {
+            name: _cell_row(group)
+            for name, group in zip(names, split_trials, strict=True)
+        }
+    if layout == "struct_array":
+        fields = neural.external_group_fields or tuple({} for _ in names)
+        if len(fields) != len(names):
+            raise CNDReadError("external group metadata count does not match groups")
+        groups = np.empty(len(names), dtype=object)
+        for index, (name, group, metadata) in enumerate(
+            zip(names, split_trials, fields, strict=True)
+        ):
+            item = dict(metadata)
+            item["data"] = _cell_row(group)
+            if name:
+                item["description"] = name
+            groups[index] = item
+        return groups
+    raise CNDReadError(f"Unsupported external channel layout {layout!r}")
 
 
 def _neural_data_to_mat(neural: CNDNeural) -> np.ndarray:

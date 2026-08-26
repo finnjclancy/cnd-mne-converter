@@ -66,6 +66,23 @@ def validate_cnd(
     if neural is None and stimulus is None:
         issues.append(_error("empty_recording", "$", "No neural or stimulus data"))
 
+    if neural is not None and neural.variable_name in recording.additional_variables:
+        issues.append(
+            _error(
+                "duplicate_file_variable",
+                "additional_variables",
+                f"Contains selected neural variable {neural.variable_name!r}",
+            )
+        )
+    if "stim" in recording.additional_variables:
+        issues.append(
+            _error(
+                "duplicate_stimulus_variable",
+                "additional_variables",
+                "The reserved 'stim' variable must use recording.stimulus",
+            )
+        )
+
     if neural is not None:
         if not np.isfinite(neural.sfreq) or neural.sfreq <= 0:
             issues.append(_error("invalid_sfreq", "neural.sfreq", "Must be positive"))
@@ -195,6 +212,23 @@ def validate_cnd(
                 )
             )
         if neural.external_trials is not None:
+            if neural.external_layout in {"named_fields", "struct_array"}:
+                names = neural.external_group_names
+                counts = neural.external_group_channel_counts
+                if (
+                    names is None
+                    or counts is None
+                    or len(names) != len(counts)
+                    or not neural.external_trials
+                    or sum(counts) != np.asarray(neural.external_trials[0]).shape[1]
+                ):
+                    issues.append(
+                        _error(
+                            "external_group_metadata",
+                            "neural.external_group_channel_counts",
+                            "Group names/counts must describe every external channel",
+                        )
+                    )
             if len(neural.external_trials) != neural.n_trials:
                 issues.append(
                     _error(

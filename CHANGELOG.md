@@ -17,6 +17,12 @@ versioning once it reaches its first tagged release.
 - Transactional publication and rollback for neural/stimulus output pairs.
 - Wheel and source-distribution installation smoke tests in CI.
 - PEP 561 typing marker and a passing Mypy CI check.
+- Explicit selection and lossless preservation of multiple recording-modality
+  variables in one CND subject file.
+- CND 1.0 `extChan.<type>` parsing and reconstruction with stable v5/v7.3
+  channel-group ordering.
+- Locked-dependency and source security audits in CI.
+- Monthly Dependabot checks for Python and GitHub Actions dependencies.
 
 ### Changed
 

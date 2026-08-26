@@ -45,6 +45,8 @@ extension fields.
 - CI across Linux, macOS, Windows, supported Python versions, and minimum/latest
   compatible MNE versions.
 - Release metadata, licence, citation, contribution and security guidance.
+- Multiple-modality selection/preservation and both documented external-channel
+  layouts, audited directly against the official CND 1.0 specification.
 
 ## Public-catalogue results
 
@@ -60,8 +62,8 @@ extension fields.
 | Scalar neural values | 11,293,937,597 |
 | Maximum CND-to-MNE numerical error | 0 |
 | Maximum controlled round-trip numerical error | 0 |
-| Automated tests | 110 passing |
-| Statement coverage | 96.23% |
+| Automated tests | 116 passing |
+| Statement coverage | 95.34% |
 
 Every complete pass includes MATLAB parsing, structural validation, MNE object
 construction, orientation and value comparison, all stimulus views, a finite

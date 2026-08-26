@@ -299,6 +299,7 @@ def read_cnd_mne(
     stimulus_path: str | Path | None = None,
     subject: str | int | None = None,
     load_stimulus: bool = True,
+    neural_variable: str | None = None,
     neural_unit: str | None = None,
     montage: MontagePolicy = "none",
     coordinate_scale_to_meters: float | None = None,
@@ -311,6 +312,7 @@ def read_cnd_mne(
         stimulus_path=stimulus_path,
         subject=subject,
         load_stimulus=load_stimulus,
+        neural_variable=neural_variable,
     )
     return to_mne(
         recording,
@@ -484,7 +486,8 @@ def from_mne(
         )
 
     if template_neural is not None:
-        assert template is not None
+        if template is None:  # Defensive guard for future template handling changes.
+            raise CNDValidationError("Internal template state is inconsistent")
         neural = replace(
             template_neural,
             trials=trials,
@@ -514,7 +517,11 @@ def from_mne(
             variable_name="eeg",
         )
         resolved_stimulus = stimulus
-    recording = CNDRecording(neural, resolved_stimulus)
+    recording = CNDRecording(
+        neural,
+        resolved_stimulus,
+        dict(template.additional_variables) if template is not None else {},
+    )
     validate_cnd(recording).raise_for_errors()
     return recording
 

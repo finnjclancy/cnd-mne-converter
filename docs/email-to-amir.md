@@ -24,10 +24,14 @@ the public catalogue, and provides explicit MNE views for stimulus features,
 sparse events, and external channels. Export uses the retained CND structure so
 that experiment metadata is not discarded.
 
-The repository currently has 110 passing tests with 96.23% statement coverage.
+The repository currently has 116 passing tests with 95.34% statement coverage.
 CI covers Linux, macOS, Windows, Python 3.10–3.13, minimum/current MNE, and
 installation of both built distributions. The verifier can also write and
 reread both MATLAB formats rather than testing only the in-memory conversion.
+I have also audited the implementation against the official CND 1.0 document,
+added lossless handling for multiple modality variables and both external-
+channel layouts, and run compatibility checks with the NAPlib and Eelbrain
+readers. Dependency and source security scans are clean.
 
 ## Public data testing
 

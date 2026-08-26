@@ -81,6 +81,11 @@ def test_mne_to_cnd_preserves_values_and_metadata(sample_recording) -> None:
 
 
 def test_template_round_trip_preserves_cnd_only_metadata(sample_recording) -> None:
+    sample_recording.additional_variables["pupilDilation"] = {
+        "data": np.arange(2.0),
+        "fs": 100.0,
+        "dataType": "PupilDilation",
+    }
     converted = to_mne(sample_recording)
     converted.raws[0]._data += 2e-6
 
@@ -92,6 +97,7 @@ def test_template_round_trip_preserves_cnd_only_metadata(sample_recording) -> No
         converted_back.neural.external_fields == sample_recording.neural.external_fields
     )
     assert converted_back.neural.original_trial_positions == (2, 1)
+    assert converted_back.additional_variables == sample_recording.additional_variables
     np.testing.assert_allclose(
         converted_back.neural.trials[0],
         sample_recording.neural.trials[0] + 2,

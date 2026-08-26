@@ -270,7 +270,8 @@ def _verify_subject(
         report = validate_cnd(recording, strict_spec=strict_spec)
         neural = recording.neural
         stimulus = recording.stimulus
-        assert neural is not None
+        if neural is None:
+            raise CNDValidationError("Subject file did not produce neural data")
         empty.update(
             {
                 "stimulus_file": (
@@ -376,7 +377,8 @@ def _verify_subject(
         serialized_error = None
         if round_trip:
             converted_back = converted.to_cnd(on_unsupported_metadata="raise")
-            assert converted_back.neural is not None
+            if converted_back.neural is None:
+                raise CNDValidationError("MNE round trip lost neural data")
             round_trip_error = max(
                 _max_abs_error(before, after)
                 for before, after in zip(
@@ -385,6 +387,10 @@ def _verify_subject(
             )
             metadata_preserved = (
                 converted_back.stimulus is recording.stimulus
+                and _metadata_equal(
+                    converted_back.additional_variables,
+                    recording.additional_variables,
+                )
                 and converted_back.neural.extra_fields is neural.extra_fields
                 and converted_back.neural.external_fields is neural.external_fields
                 and converted_back.neural.channel_locations is neural.channel_locations
@@ -392,6 +398,13 @@ def _verify_subject(
                 is neural.channel_locations_raw
                 and converted_back.neural.original_trial_positions
                 == neural.original_trial_positions
+                and converted_back.neural.external_layout == neural.external_layout
+                and converted_back.neural.external_group_names
+                == neural.external_group_names
+                and converted_back.neural.external_group_channel_counts
+                == neural.external_group_channel_counts
+                and converted_back.neural.external_group_fields
+                is neural.external_group_fields
             )
             numerically_equivalent = all(
                 np.allclose(before, after, rtol=1e-12, atol=1e-12)
@@ -515,6 +528,18 @@ def _serialized_round_trip(
             expected_neural.padding_start_sample,
         )
         and actual_neural.cnd_version == expected_neural.cnd_version
+        and actual_neural.external_layout == expected_neural.external_layout
+        and actual_neural.external_group_names == expected_neural.external_group_names
+        and actual_neural.external_group_channel_counts
+        == expected_neural.external_group_channel_counts
+        and _metadata_equal(
+            actual_neural.external_group_fields,
+            expected_neural.external_group_fields,
+        )
+        and _metadata_equal(
+            reloaded.additional_variables,
+            recording.additional_variables,
+        )
     )
     return (
         neural_equal and stimulus_equal and external_equal and essentials_equal,
@@ -563,6 +588,21 @@ def _optional_trial_values_equal(
 def _metadata_equal(expected: Any, actual: Any) -> bool:
     if expected is None or actual is None:
         return expected is actual
+    if isinstance(expected, dict) or isinstance(actual, dict):
+        if not isinstance(expected, dict) or not isinstance(actual, dict):
+            return False
+        return expected.keys() == actual.keys() and all(
+            _metadata_equal(expected[key], actual[key]) for key in expected
+        )
+    if isinstance(expected, (list, tuple)) or isinstance(actual, (list, tuple)):
+        if not isinstance(expected, (list, tuple)) or not isinstance(
+            actual, (list, tuple)
+        ):
+            return False
+        return len(expected) == len(actual) and all(
+            _metadata_equal(before, after)
+            for before, after in zip(expected, actual, strict=True)
+        )
     try:
         result = expected == actual
     except (TypeError, ValueError):

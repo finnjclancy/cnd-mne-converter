@@ -94,4 +94,24 @@ jobs:
         run: |
           uv venv .sdist-test --python 3.12
           uv pip install --python .sdist-test/bin/python dist/*.tar.gz
-          .sdist-test/bin/python -c "from cnd_mne import read_cnd_mne, write_cnd"
+          .sdist-test/bin/python -c \
+            "from cnd_mne import read_cnd_mne, write_cnd"
+
+  security-audit:
+    name: Dependency and source security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --extra dev
+      - name: Audit locked runtime dependencies
+        run: |
+          uv export --no-dev --no-hashes \
+            --format requirements-txt \
+            --output-file audit-requirements.txt
+          uvx pip-audit -r audit-requirements.txt --no-deps --disable-pip
+      - name: Scan package source
+        run: uvx bandit -r src/cnd_mne -q

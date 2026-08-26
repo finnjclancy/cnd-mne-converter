@@ -79,6 +79,18 @@ def test_empty_recording_raises_from_report() -> None:
         report.raise_for_errors()
 
 
+@pytest.mark.parametrize("key", ["eeg", "stim"])
+def test_reserved_additional_file_variables_are_rejected(sample_recording, key) -> None:
+    recording = replace(sample_recording, additional_variables={key: 1})
+
+    codes = {issue.code for issue in validate_cnd(recording).errors}
+
+    expected = (
+        "duplicate_file_variable" if key == "eeg" else "duplicate_stimulus_variable"
+    )
+    assert expected in codes
+
+
 def test_neural_metadata_and_shape_errors_are_reported(sample_recording) -> None:
     neural = replace(
         sample_recording.neural,
@@ -119,6 +131,17 @@ def test_external_channel_shapes_and_lengths_are_reported(sample_recording) -> N
     assert any(
         issue.code == "external_length_mismatch"
         for issue in validate_cnd(CNDRecording(neural=wrong_length)).warnings
+    )
+
+    invalid_groups = replace(
+        sample_recording.neural,
+        external_layout="named_fields",
+        external_group_names=("mastoids",),
+        external_group_channel_counts=(1,),
+    )
+    assert any(
+        issue.code == "external_group_metadata"
+        for issue in validate_cnd(CNDRecording(neural=invalid_groups)).errors
     )
 
 

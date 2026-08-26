@@ -11,6 +11,7 @@ import cnd_mne.io as cnd_io
 from cnd_mne import (
     CNDReadError,
     CNDRecording,
+    available_neural_variables,
     read_cnd,
     read_cnd_neural,
     read_cnd_stimulus,
@@ -257,6 +258,53 @@ def test_alternate_neural_variable_and_single_channel_are_supported(tmp_path) ->
     assert neural.channel_names == ("Cz",)
 
 
+@pytest.mark.parametrize("mat_version", ["5", "7.3"])
+def test_multiple_recording_modalities_are_selectable_and_preserved(
+    tmp_path, mat_version
+) -> None:
+    path = tmp_path / "multimodal.mat"
+    eeg = {
+        "data": np.arange(8.0).reshape(4, 2),
+        "fs": 8.0,
+        "dataType": "EEG",
+        "dataUnit": "uV",
+    }
+    pupil = {
+        "data": np.arange(4.0),
+        "fs": 8.0,
+        "dataUnit": "a.u.",
+    }
+    stim = {
+        "data": np.arange(4.0),
+        "names": "Envelope",
+        "fs": 8.0,
+    }
+    savemat(path, {"eeg": eeg, "pupilDilation": pupil, "stim": stim, "session": 7})
+
+    assert available_neural_variables(path) == ("eeg", "pupilDilation")
+    default = read_cnd(path, load_stimulus=False)
+    selected = read_cnd(path, neural_variable="pupilDilation")
+
+    assert default.neural.variable_name == "eeg"
+    assert default.stimulus.names == ("Envelope",)
+    assert set(default.additional_variables) == {"pupilDilation", "session"}
+    assert selected.neural.variable_name == "pupilDilation"
+    assert set(selected.additional_variables) == {"eeg", "session"}
+    assert read_cnd_neural(path, variable_name="pupilDilation").n_channels == 1
+    with pytest.raises(CNDReadError, match="available: eeg, pupilDilation"):
+        read_cnd(path, neural_variable="meg")
+
+    output = write_cnd(default, tmp_path / "round-trip", mat_version=mat_version)
+    assert available_neural_variables(output.neural) == ("eeg", "pupilDilation")
+    reloaded_pupil = read_cnd(
+        output.neural,
+        stimulus_path=output.stimulus,
+        neural_variable="pupilDilation",
+    )
+    np.testing.assert_array_equal(reloaded_pupil.neural.trials[0][:, 0], np.arange(4.0))
+    assert reloaded_pupil.additional_variables["session"] == 7
+
+
 def test_parser_helpers_cover_supported_matlab_layouts() -> None:
     trials = cnd_io._as_trial_tuple(np.zeros((2, 3, 4)))
     assert [trial.shape for trial in trials] == [(3, 4), (3, 4)]
@@ -376,14 +424,62 @@ def test_multiple_external_channel_groups_are_combined_without_loss(tmp_path) ->
 
     assert [trial.shape for trial in neural.external_trials] == [(4, 2), (5, 2)]
     assert neural.external_description == "Mastoid left; Mastoid right"
-    assert neural.external_fields["groupDescriptions"] == (
+    assert neural.external_layout == "struct_array"
+    assert neural.external_group_names == (
         "Mastoid left",
         "Mastoid right",
     )
-    assert neural.external_fields["groupFields"] == (
+    assert neural.external_group_fields == (
         {"kind": "reference"},
         {"kind": "reference"},
     )
+
+    path = write_cnd(CNDRecording(neural=neural), tmp_path / "groups").neural
+    reloaded = read_cnd_neural(path)
+    assert reloaded.external_layout == "struct_array"
+    assert reloaded.external_group_names == neural.external_group_names
+    assert reloaded.external_group_fields == neural.external_group_fields
+    for expected, actual in zip(
+        neural.external_trials, reloaded.external_trials, strict=True
+    ):
+        np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("mat_version", ["5", "7.3"])
+def test_spec_named_external_channel_fields_round_trip(tmp_path, mat_version) -> None:
+    neural = cnd_io._parse_neural(
+        {
+            "data": [np.zeros((4, 2)), np.zeros((5, 2))],
+            "fs": 10.0,
+            "dataType": "EEG",
+            "extChan": {
+                "mastoids": [np.arange(4.0), np.arange(5.0)],
+                "eog": [
+                    np.arange(8.0).reshape(4, 2),
+                    np.arange(10.0).reshape(5, 2),
+                ],
+            },
+        },
+        "eeg",
+        tmp_path / "external-fields.mat",
+    )
+
+    assert neural.external_layout == "named_fields"
+    assert neural.external_group_names == ("eog", "mastoids")
+    assert neural.external_group_channel_counts == (2, 1)
+    assert [trial.shape for trial in neural.external_trials] == [(4, 3), (5, 3)]
+
+    path = write_cnd(
+        CNDRecording(neural=neural), tmp_path / "named", mat_version=mat_version
+    ).neural
+    reloaded = read_cnd_neural(path)
+    assert reloaded.external_layout == "named_fields"
+    assert reloaded.external_group_names == ("eog", "mastoids")
+    assert reloaded.external_group_channel_counts == (2, 1)
+    for expected, actual in zip(
+        neural.external_trials, reloaded.external_trials, strict=True
+    ):
+        np.testing.assert_array_equal(actual, expected)
 
 
 def test_fnirs_signal_type_grid_is_normalized_and_written_losslessly(tmp_path) -> None:

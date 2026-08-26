@@ -18,6 +18,8 @@ The tested research milestone provides:
   writers;
 - a canonical model that preserves variable-length trials, continuous stimulus
   features, conditions, external channels, and unknown fields;
+- explicit selection and lossless preservation of multiple recording-modality
+  variables in one subject file;
 - tolerant legacy validation and strict CND 1.0 conformance validation;
 - one MNE `RawArray` per CND neural trial;
 - MNE `misc` views of continuous stimulus features;
@@ -43,7 +45,9 @@ machine-generated
 [catalogue summary](docs/results/catalog-summary.json) and
 [verification notes](docs/results/README.md) for exact claims and limitations.
 
-The prototype currently supports EEG and the observed CND fNIRS layout.
+The MNE adapter currently supports EEG and the observed CND fNIRS layout. The
+MATLAB layer can select any modality structure with `data` and `fs`, retaining
+all unselected modalities for a lossless file round trip.
 Automatic unit discovery, automatic coordinate scaling, implicit external-
 channel typing, MEG, TRF results, lazy multi-gigabyte loading, and arbitrary
 MNE modalities remain future work.
@@ -89,6 +93,22 @@ mne_recording = read_cnd_mne("/path/to/dataCND", subject=1, neural_unit="uV")
 first_trial = mne_recording.raws[0]
 first_trial.plot()
 ```
+
+If a subject file contains several modalities, inspect them and select one
+explicitly:
+
+```python
+from cnd_mne import available_neural_variables
+
+print(available_neural_variables("/path/to/dataSub1.mat"))
+mne_recording = read_cnd_mne(
+    "/path/to/dataSub1.mat", neural_variable="eeg", neural_unit="uV"
+)
+```
+
+Unselected modality variables are retained in
+`mne_recording.cnd.additional_variables` and written back during a
+template-backed export.
 
 The adapter does not concatenate trials or resample stimulus features. If CND
 does not contain channel locations, generated names such as `EEG001` are used
@@ -176,7 +196,10 @@ retaining the block sizes needed to reconstruct the original CND layout.
    explicit scale to metres.
 6. **Preserve unknown fields.** Legacy datasets contain useful experiment
    metadata outside the core specification.
-7. **Protect round trips.** CND-specific information remains in the canonical
+7. **Canonicalize named external groups.** CND 1.0 allows one `extChan` field
+   per external-signal type. Field names are sorted so channel order is stable
+   across MATLAB v5 and v7.3 readers, while group boundaries are retained.
+8. **Protect round trips.** CND-specific information remains in the canonical
    model instead of being forced into unsuitable MNE fields.
 
 ## Repository documentation
@@ -189,6 +212,7 @@ retaining the block sizes needed to reconstruct the original CND layout.
 - [Testing strategy and coverage interpretation](docs/testing-strategy.md)
 - [Public test-dataset release and checksums](docs/dataset-assets.md)
 - [Review of existing Python CND importers](docs/existing-importers.md)
+- [Audit against the official CND 1.0 specification](docs/cnd-spec-audit.md)
 - [Implementation roadmap](docs/implementation-roadmap.md)
 - [Scientific validation checklist](docs/scientific-validation-checklist.md)
 - [Questions for CND and MNE maintainers](docs/questions-for-maintainers.md)

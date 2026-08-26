@@ -23,6 +23,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     inspect_parser.add_argument("--stimulus-path")
     inspect_parser.add_argument("--subject")
     inspect_parser.add_argument(
+        "--neural-variable",
+        help="recording-modality variable to load when a file contains several",
+    )
+    inspect_parser.add_argument(
         "--no-stimulus", action="store_true", help="do not infer a stimulus file"
     )
     inspect_parser.add_argument(
@@ -75,6 +79,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             stimulus_path=args.stimulus_path,
             subject=args.subject,
             load_stimulus=not args.no_stimulus,
+            neural_variable=args.neural_variable,
         )
         print(
             json.dumps(inspect_cnd(recording, strict_spec=args.strict_spec), indent=2)

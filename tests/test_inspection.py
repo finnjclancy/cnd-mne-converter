@@ -19,7 +19,16 @@ def test_inspection_is_json_serializable(sample_recording) -> None:
 def test_inspect_cli(sample_recording, tmp_path, capsys) -> None:
     write_cnd(sample_recording, tmp_path, subject=1)
 
-    result = main(["inspect", str(tmp_path), "--subject", "1"])
+    result = main(
+        [
+            "inspect",
+            str(tmp_path),
+            "--subject",
+            "1",
+            "--neural-variable",
+            "eeg",
+        ]
+    )
     output = json.loads(capsys.readouterr().out)
 
     assert result == 0

@@ -22,6 +22,12 @@ def inspect_cnd(
         "strict_spec": strict_spec,
         "neural": None,
         "stimulus": None,
+        "additional_file_variables": sorted(recording.additional_variables),
+        "additional_recording_modalities": sorted(
+            key
+            for key, value in recording.additional_variables.items()
+            if isinstance(value, dict) and {"data", "fs"} <= set(value)
+        ),
         "validation": {
             "is_valid": report.is_valid,
             "errors": [
@@ -47,6 +53,12 @@ def inspect_cnd(
             "trial_shapes": [list(np.asarray(trial).shape) for trial in neural.trials],
             "has_channel_locations": neural.channel_locations is not None,
             "has_external_channels": neural.external_trials is not None,
+            "external_layout": neural.external_layout,
+            "external_group_names": (
+                list(neural.external_group_names)
+                if neural.external_group_names is not None
+                else None
+            ),
             "has_padding_start_sample": neural.padding_start_sample is not None,
             "cnd_version": neural.cnd_version,
             "extra_fields": sorted(neural.extra_fields),

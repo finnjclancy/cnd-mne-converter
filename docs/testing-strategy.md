@@ -7,7 +7,7 @@ during the automated test suite?* It does not measure the percentage of CND
 datasets supported, prove scientific correctness, or show that every possible
 MATLAB representation has been observed.
 
-The current suite has 110 passing tests and 96.23% statement coverage. The
+The current suite has 116 passing tests and 95.34% statement coverage. The
 remaining statements are principally defensive guards that follow earlier
 validation, process-entry code, a filesystem race check, and fallback behavior
 for an environment in which package metadata is unavailable. Forcing these

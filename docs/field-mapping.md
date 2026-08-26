@@ -16,6 +16,7 @@ requiring confirmation.
 | `eeg.chanlocs` | Tuple of field-preserving dictionaries | Optional `DigMontage` | EEGLAB axis mapping and scale to metres are opt-in |
 | 2D topomap-layout `chanlocs` | Real channel labels plus retained raw layout | Channel names only | `COMNT`/`SCALE` drawing helpers are excluded; global outline/mask data is preserved for export |
 | `eeg.extChan` | Separate external trial arrays, description, and additional fields | Retained in companion model, not added to neural `Raw` by default | Channel type, names, and units can be ambiguous |
+| `extChan.<type>` named groups | Deterministically combined trials plus retained names and channel counts | Same explicit external-channel view | Alphabetical group order is used because v5/v7.3 readers expose MATLAB struct fields in different orders |
 | `eeg.origTrialPosition` | One-based stored values | Retained in companion model | Never collapse into bare `Raw` |
 | `eeg.paddingStartSample` | Preserved verbatim | Not yet converted to annotations | Needed for precise stimulus onset alignment |
 | `stim.data` | `feature -> trial -> ndarray` | Companion `CNDStimulus`; optional `misc` `RawArray` views | Never force arbitrary features into physiological channels |
@@ -26,6 +27,7 @@ requiring confirmation.
 | `stim.condNames` | Optional condition labels | Companion metadata | Some datasets encode labels directly in `condIdxs` |
 | `cndVersion` | Optional numeric version metadata | Companion provenance | Numeric type is preserved; public legacy datasets often omit it |
 | Additional fields | `extra_fields` | Companion metadata | Preserved when MATLAB-serializable |
+| Additional top-level modality variables | `CNDRecording.additional_variables` | Retained beside the selected MNE modality | Caller selects one variable; all others survive template-backed export |
 
 ## Invariants
 
@@ -39,6 +41,8 @@ requiring confirmation.
 - No unit conversion occurs without a declared input unit.
 - No coordinate conversion occurs without an explicit transform and scale.
 - Unsupported information is reported rather than silently discarded.
+- A subject file with multiple modality variables never loses the unselected
+  variables during a controlled round trip.
 
 ## One-based indices
 

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
 
 Array: TypeAlias = NDArray[np.generic]
 CNDVersion: TypeAlias = str | int | float
+ExternalLayout: TypeAlias = Literal["single_struct", "named_fields", "struct_array"]
 
 
 @dataclass(slots=True)
@@ -31,6 +32,10 @@ class CNDNeural:
     external_trials: tuple[Array, ...] | None = None
     external_description: str | None = None
     external_fields: dict[str, Any] = field(default_factory=dict)
+    external_layout: ExternalLayout | None = None
+    external_group_names: tuple[str, ...] | None = None
+    external_group_channel_counts: tuple[int, ...] | None = None
+    external_group_fields: tuple[dict[str, Any], ...] | None = None
     rereference: Any = None
     padding_start_sample: Any = None
     cnd_version: CNDVersion | None = None
@@ -113,6 +118,7 @@ class CNDRecording:
 
     neural: CNDNeural | None = None
     stimulus: CNDStimulus | None = None
+    additional_variables: dict[str, Any] = field(default_factory=dict)
 
     @property
     def n_trials(self) -> int:
