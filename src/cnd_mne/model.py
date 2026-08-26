@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
 
-Array = NDArray[np.generic]
-CNDVersion = str | int | float
+Array: TypeAlias = NDArray[np.generic]
+CNDVersion: TypeAlias = str | int | float
 
 
 @dataclass(slots=True)

@@ -484,6 +484,7 @@ def from_mne(
         )
 
     if template_neural is not None:
+        assert template is not None
         neural = replace(
             template_neural,
             trials=trials,
@@ -522,10 +523,10 @@ def _channel_spec(neural: CNDNeural) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Return deterministic MNE names and channel types for a CND signal."""
     data_type = neural.data_type.strip().lower()
     if data_type == "eeg":
-        names = neural.channel_names or tuple(
+        eeg_names = neural.channel_names or tuple(
             f"EEG{index:03d}" for index in range(1, neural.n_channels + 1)
         )
-        return names, ("eeg",) * neural.n_channels
+        return eeg_names, ("eeg",) * neural.n_channels
     if data_type not in {"fnirs", "nirs"}:
         raise CNDUnsupportedError(f"Unsupported neural type {neural.data_type!r}")
     signal_types = neural.signal_types
@@ -534,7 +535,7 @@ def _channel_spec(neural: CNDNeural) -> tuple[tuple[str, ...], tuple[str, ...]]:
         raise CNDValidationError(
             "fNIRS conversion requires signal_types and channels_per_signal_type"
         )
-    names: list[str] = []
+    fnirs_names: list[str] = []
     channel_types: list[str] = []
     for signal_type, count in zip(signal_types, counts, strict=True):
         normalized = _normalize_unit(signal_type)
@@ -550,9 +551,11 @@ def _channel_spec(neural: CNDNeural) -> tuple[tuple[str, ...], tuple[str, ...]]:
             mne_type = "misc"
             prefix = str(signal_type).strip() or "fNIRS"
         width = max(2, len(str(count)))
-        names.extend(f"{prefix}{index:0{width}d}" for index in range(1, count + 1))
+        fnirs_names.extend(
+            f"{prefix}{index:0{width}d}" for index in range(1, count + 1)
+        )
         channel_types.extend([mne_type] * count)
-    return tuple(names), tuple(channel_types)
+    return tuple(fnirs_names), tuple(channel_types)
 
 
 def _feature_index(stimulus: CNDStimulus, feature: str | int) -> int:

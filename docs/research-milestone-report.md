@@ -13,7 +13,7 @@ alignment.
 
 ```mermaid
 flowchart LR
-    MAT["CND v5 / v7.3 files"] <--> IO["Atomic reader / writer"]
+    MAT["CND v5 / v7.3 files"] <--> IO["Transactional reader / writer"]
     IO <--> MODEL["Loss-aware CND model"]
     MODEL --> VALIDATE["Tolerant or strict validation"]
     MODEL <--> ADAPTER["MNE adapter"]
@@ -30,7 +30,7 @@ extension fields.
 
 ## Engineering delivered
 
-- MATLAB v5 and v7.3/HDF5 neural and stimulus readers and atomic writers.
+- MATLAB v5 and v7.3/HDF5 neural and stimulus readers and transactional writers.
 - EEG plus the fNIRS HbO/HbR/HbT layout observed in the catalogue.
 - Explicit physical-unit conversion to MNE SI units; no unit guessing.
 - Opt-in EEGLAB coordinate transform requiring a scale to metres.
@@ -41,6 +41,7 @@ extension fields.
 - Template-backed MNE-to-CND export preserving CND-only metadata.
 - Tolerant legacy validation and strict CND 1.0 conformance validation.
 - Reproducible full-dataset reports and explicit outcome classifications.
+- Optional v5/v7.3 serialized verification through the actual writer and reader.
 - CI across Linux, macOS, Windows, supported Python versions, and minimum/latest
   compatible MNE versions.
 - Release metadata, licence, citation, contribution and security guidance.
@@ -59,8 +60,8 @@ extension fields.
 | Scalar neural values | 11,293,937,597 |
 | Maximum CND-to-MNE numerical error | 0 |
 | Maximum controlled round-trip numerical error | 0 |
-| Automated tests | 104 passing |
-| Statement coverage | 96.8% |
+| Automated tests | 110 passing |
+| Statement coverage | 96.23% |
 
 Every complete pass includes MATLAB parsing, structural validation, MNE object
 construction, orientation and value comparison, all stimulus views, a finite

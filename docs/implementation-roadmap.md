@@ -59,10 +59,13 @@ answer.
 
 ## Phase 1d: production hardening — implemented
 
-- Atomic MATLAB v5 and v7.3/HDF5 writing.
+- Transactional MATLAB v5 and v7.3/HDF5 writing, including rollback across the
+  neural/stimulus output pair.
 - Direct CND-to-MNE read and controlled MNE-to-CND write APIs.
 - Opt-in sparse-feature annotations and explicitly typed/scaled external views.
 - Verification outcome schema that separates empty data from converter errors.
+- Opt-in verification through the actual v5/v7.3 writer and reader, plus
+  external-channel view checks.
 - Linux, macOS, Windows, minimum-MNE, and latest-MNE CI coverage.
 - Licence, citation, changelog, contribution, security, scientific validation,
   and maintainer-decision documentation.
@@ -74,7 +77,7 @@ answer.
   views are implemented without guessing.
 - Padding-aware alignment metadata.
 - Optional, provenance-recorded resampling.
-- Optional concatenated `Raw` view with boundary annotations.
+- Maintainer-approved upstream form of the implemented concatenated `Raw` view.
 - Support for MEG and additional fNIRS layouts after defining modality-specific
   metadata.
 - Memory-aware or lazy reading for multi-gigabyte datasets.
@@ -121,3 +124,6 @@ verifier stores machine-readable reports under `docs/results/`.
 - [x] Unsupported MNE metadata and CND conformance deviations are visible.
 - [x] Architecture decisions, JSON evidence, and unresolved questions are
   suitable for discussion with Giovanni Di Liberto and MNE maintainers.
+
+The unchecked confirmed-unit item requires experiment-owner information and
+independent scientific review; it is not an unimplemented converter feature.

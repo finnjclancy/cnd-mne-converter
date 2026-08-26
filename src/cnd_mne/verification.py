@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import platform
+import tempfile
 import time
 import warnings
 from collections import Counter
@@ -10,13 +11,13 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import mne
 import numpy as np
 
 from .exceptions import CNDValidationError
-from .io import read_cnd
+from .io import read_cnd, write_cnd
 from .mne import _unit_scale, to_mne
 from .model import CNDRecording
 from .validation import ValidationIssue, validate_cnd
@@ -43,10 +44,13 @@ class SubjectVerification:
     mne_shape_verified: bool
     mne_max_abs_error_source_units: float | None
     stimulus_mne_views_verified: bool | None
+    external_mne_views_verified: bool | None
     mne_psd_finite: bool | None
     round_trip_verified: bool
     round_trip_max_abs_error_source_units: float | None
     cnd_metadata_preserved: bool | None
+    serialized_round_trip_verified: bool | None
+    serialized_round_trip_max_abs_error_source_units: float | None
     conversion_warnings: tuple[str, ...]
     failure: str | None
     elapsed_seconds: float
@@ -64,6 +68,8 @@ class DatasetVerification:
     neural_unit_assumption: str | None
     strict_spec: bool
     round_trip_requested: bool
+    serialized_round_trip_requested: bool
+    serialized_mat_version: str | None
     mne_smoke_test_requested: bool
     skipped_empty_files: tuple[str, ...]
     subjects: tuple[SubjectVerification, ...]
@@ -133,6 +139,8 @@ def verify_dataset(
     neural_unit: str | None = None,
     strict_spec: bool = False,
     round_trip: bool = True,
+    serialized_round_trip: bool = False,
+    serialized_mat_version: Literal["5", "7.3"] = "5",
     mne_smoke_test: bool = True,
 ) -> DatasetVerification:
     """Verify every ``dataSub*.mat`` file in a local CND dataset.
@@ -140,7 +148,17 @@ def verify_dataset(
     ``neural_unit`` is an explicit testing assumption for legacy datasets. It
     is recorded in the report and is never inferred. When omitted, parsing and
     validation run but MNE and round-trip checks are skipped.
+
+    ``serialized_round_trip`` additionally writes the converted recording to a
+    temporary MATLAB file and reads it back. It is opt-in because serializing
+    every subject in a multi-gigabyte public collection can require substantial
+    time and temporary disk space. Both supported writer formats can be tested
+    with ``serialized_mat_version="5"`` or ``"7.3"``.
     """
+    if serialized_mat_version not in {"5", "7.3"}:
+        raise ValueError("serialized_mat_version must be '5' or '7.3'")
+    if serialized_round_trip and not round_trip:
+        raise ValueError("serialized_round_trip requires round_trip=True")
     supplied_path = Path(path).expanduser()
     source = supplied_path.resolve()
     data_directory = source / "dataCND" if (source / "dataCND").is_dir() else source
@@ -171,12 +189,14 @@ def verify_dataset(
             neural_unit=neural_unit,
             strict_spec=strict_spec,
             round_trip=round_trip,
+            serialized_round_trip=serialized_round_trip,
+            serialized_mat_version=serialized_mat_version,
             mne_smoke_test=mne_smoke_test,
         )
         for file in files
     )
     return DatasetVerification(
-        schema_version=3,
+        schema_version=4,
         dataset_name=dataset_name or source.name,
         dataset_path=str(supplied_path),
         generated_at_utc=datetime.now(timezone.utc).isoformat(),
@@ -189,6 +209,14 @@ def verify_dataset(
         neural_unit_assumption=neural_unit,
         strict_spec=strict_spec,
         round_trip_requested=round_trip and neural_unit is not None,
+        serialized_round_trip_requested=(
+            serialized_round_trip and neural_unit is not None
+        ),
+        serialized_mat_version=(
+            serialized_mat_version
+            if serialized_round_trip and neural_unit is not None
+            else None
+        ),
         mne_smoke_test_requested=mne_smoke_test and neural_unit is not None,
         skipped_empty_files=skipped_empty_files,
         subjects=subjects,
@@ -201,6 +229,8 @@ def _verify_subject(
     neural_unit: str | None,
     strict_spec: bool,
     round_trip: bool,
+    serialized_round_trip: bool,
+    serialized_mat_version: Literal["5", "7.3"],
     mne_smoke_test: bool,
 ) -> SubjectVerification:
     started = time.monotonic()
@@ -224,10 +254,13 @@ def _verify_subject(
         "mne_shape_verified": False,
         "mne_max_abs_error_source_units": None,
         "stimulus_mne_views_verified": None,
+        "external_mne_views_verified": None,
         "mne_psd_finite": None,
         "round_trip_verified": False,
         "round_trip_max_abs_error_source_units": None,
         "cnd_metadata_preserved": None,
+        "serialized_round_trip_verified": None,
+        "serialized_round_trip_max_abs_error_source_units": None,
         "conversion_warnings": (),
         "failure": None,
     }
@@ -318,9 +351,29 @@ def _verify_subject(
                             raw.get_data(), expected.T
                         )
 
+        external_views_verified = None
+        if neural.external_trials is not None:
+            # Identity scaling and ``misc`` channel types exercise the adapter
+            # without making an unsupported claim about the external signals'
+            # physical units or physiological meaning.
+            external_views_verified = True
+            external_raws = converted.external_raws(unit="V", channel_types="misc")
+            external_views_verified &= len(external_raws) == len(neural.external_trials)
+            for source_trial, raw in zip(
+                neural.external_trials, external_raws, strict=True
+            ):
+                expected = np.asarray(source_trial)
+                external_views_verified &= raw.get_data().shape == expected.T.shape
+                if raw.get_data().shape == expected.T.shape:
+                    external_views_verified &= np.array_equal(
+                        raw.get_data(), expected.T
+                    )
+
         round_trip_verified = False
         round_trip_error = None
         metadata_preserved = None
+        serialized_verified = None
+        serialized_error = None
         if round_trip:
             converted_back = converted.to_cnd(on_unsupported_metadata="raise")
             assert converted_back.neural is not None
@@ -347,6 +400,11 @@ def _verify_subject(
                 )
             )
             round_trip_verified = numerically_equivalent and metadata_preserved
+            if serialized_round_trip:
+                serialized_verified, serialized_error = _serialized_round_trip(
+                    converted_back,
+                    mat_version=serialized_mat_version,
+                )
 
         empty.update(
             {
@@ -354,10 +412,13 @@ def _verify_subject(
                 "mne_shape_verified": shape_verified,
                 "mne_max_abs_error_source_units": mne_error,
                 "stimulus_mne_views_verified": stimulus_views_verified,
+                "external_mne_views_verified": external_views_verified,
                 "mne_psd_finite": psd_finite,
                 "round_trip_verified": round_trip_verified,
                 "round_trip_max_abs_error_source_units": round_trip_error,
                 "cnd_metadata_preserved": metadata_preserved,
+                "serialized_round_trip_verified": serialized_verified,
+                "serialized_round_trip_max_abs_error_source_units": (serialized_error),
                 "conversion_warnings": tuple(str(item.message) for item in caught),
             }
         )
@@ -366,7 +427,9 @@ def _verify_subject(
         elif (
             shape_verified
             and stimulus_views_verified is not False
+            and external_views_verified is not False
             and (not round_trip or round_trip_verified)
+            and (not serialized_round_trip or serialized_verified is True)
             and (not mne_smoke_test or psd_finite is True)
         ):
             empty["outcome"] = "complete_pass"
@@ -402,6 +465,109 @@ def _mne_psd_is_finite(raw: mne.io.BaseRaw) -> bool:
         verbose="ERROR",
     )
     return bool(np.isfinite(spectrum.get_data()).all())
+
+
+def _serialized_round_trip(
+    recording: CNDRecording, *, mat_version: Literal["5", "7.3"]
+) -> tuple[bool, float]:
+    """Exercise the real MATLAB writer and reader in an isolated directory."""
+    with tempfile.TemporaryDirectory(prefix="cnd-mne-verify-") as temporary:
+        destination = Path(temporary) / "dataCND"
+        write_cnd(recording, destination, mat_version=mat_version)
+        reloaded = read_cnd(
+            destination, subject=1 if recording.neural is not None else None
+        )
+
+    expected_neural = recording.neural
+    actual_neural = reloaded.neural
+    if expected_neural is None or actual_neural is None:
+        return expected_neural is actual_neural, 0.0
+    if len(expected_neural.trials) != len(actual_neural.trials):
+        return False, float("inf")
+    errors = [
+        _max_abs_error(expected, actual)
+        for expected, actual in zip(
+            expected_neural.trials, actual_neural.trials, strict=True
+        )
+    ]
+    neural_equal = all(
+        np.asarray(expected).shape == np.asarray(actual).shape
+        and np.allclose(expected, actual, rtol=1e-12, atol=1e-12)
+        for expected, actual in zip(
+            expected_neural.trials, actual_neural.trials, strict=True
+        )
+    )
+    stimulus_equal = _stimulus_values_equal(recording, reloaded)
+    external_equal = _optional_trial_values_equal(
+        expected_neural.external_trials, actual_neural.external_trials
+    )
+    essentials_equal = (
+        actual_neural.sfreq == expected_neural.sfreq
+        and actual_neural.data_type == expected_neural.data_type
+        and actual_neural.device_name == expected_neural.device_name
+        and actual_neural.data_unit == expected_neural.data_unit
+        and actual_neural.original_trial_positions
+        == expected_neural.original_trial_positions
+        and actual_neural.channel_names == expected_neural.channel_names
+        and _metadata_equal(actual_neural.rereference, expected_neural.rereference)
+        and _metadata_equal(
+            actual_neural.padding_start_sample,
+            expected_neural.padding_start_sample,
+        )
+        and actual_neural.cnd_version == expected_neural.cnd_version
+    )
+    return (
+        neural_equal and stimulus_equal and external_equal and essentials_equal,
+        max(errors, default=0.0),
+    )
+
+
+def _stimulus_values_equal(expected: CNDRecording, actual: CNDRecording) -> bool:
+    expected_stimulus = expected.stimulus
+    actual_stimulus = actual.stimulus
+    if expected_stimulus is None or actual_stimulus is None:
+        return expected_stimulus is actual_stimulus
+    if (
+        expected_stimulus.names != actual_stimulus.names
+        or expected_stimulus.sfreq != actual_stimulus.sfreq
+        or expected_stimulus.stimulus_indices != actual_stimulus.stimulus_indices
+        or expected_stimulus.condition_indices != actual_stimulus.condition_indices
+        or expected_stimulus.condition_names != actual_stimulus.condition_names
+        or expected_stimulus.cnd_version != actual_stimulus.cnd_version
+        or len(expected_stimulus.features) != len(actual_stimulus.features)
+    ):
+        return False
+    return all(
+        np.asarray(before).shape == np.asarray(after).shape
+        and np.array_equal(before, after)
+        for before_feature, after_feature in zip(
+            expected_stimulus.features, actual_stimulus.features, strict=True
+        )
+        for before, after in zip(before_feature, after_feature, strict=True)
+    )
+
+
+def _optional_trial_values_equal(
+    expected: tuple[np.ndarray, ...] | None,
+    actual: tuple[np.ndarray, ...] | None,
+) -> bool:
+    if expected is None or actual is None:
+        return expected is actual
+    return len(expected) == len(actual) and all(
+        np.asarray(before).shape == np.asarray(after).shape
+        and np.array_equal(before, after)
+        for before, after in zip(expected, actual, strict=True)
+    )
+
+
+def _metadata_equal(expected: Any, actual: Any) -> bool:
+    if expected is None or actual is None:
+        return expected is actual
+    try:
+        result = expected == actual
+    except (TypeError, ValueError):
+        return False
+    return bool(np.all(result))
 
 
 def _max_duration_difference(recording: CNDRecording) -> float | None:

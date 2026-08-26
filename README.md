@@ -14,7 +14,8 @@ Experimental bidirectional conversion between Continuous-event Neural Data
 
 The tested research milestone provides:
 
-- MATLAB v5 and v7.3/HDF5 CND neural and stimulus readers and atomic writers;
+- MATLAB v5 and v7.3/HDF5 CND neural and stimulus readers and transactional
+  writers;
 - a canonical model that preserves variable-length trials, continuous stimulus
   features, conditions, external channels, and unknown fields;
 - tolerant legacy validation and strict CND 1.0 conformance validation;
@@ -137,6 +138,20 @@ uv run cnd-mne verify-dataset /path/to/dataset \
   --output verification.json
 ```
 
+For a smaller reference dataset, the verifier can also exercise the real
+MATLAB writer and reader rather than only the in-memory conversion:
+
+```bash
+uv run cnd-mne verify-dataset /path/to/dataset \
+  --neural-unit uV \
+  --serialized-round-trip \
+  --mat-version 7.3
+```
+
+Serialized verification is opt-in because rewriting an entire multi-gigabyte
+catalogue requires substantial temporary disk space. The normal writer stages
+all outputs before publication and restores existing files if any part fails.
+
 The unit is mandatory for MNE checks when a legacy file omits it. Supply only a
 unit confirmed by the dataset owner. Use `--strict-spec` when validating newly
 created CND data against the published CND 1.0 rules.
@@ -168,6 +183,8 @@ retaining the block sizes needed to reconstruct the original CND layout.
 
 - [Observed dataset compatibility](docs/dataset-compatibility.md)
 - [Research milestone report](docs/research-milestone-report.md)
+- [Technical readiness and remaining decisions](docs/technical-readiness.md)
+- [Concrete proposal for the MNE-facing API](docs/upstream-mne-proposal.md)
 - [Full-dataset verification evidence](docs/results/README.md)
 - [Testing strategy and coverage interpretation](docs/testing-strategy.md)
 - [Public test-dataset release and checksums](docs/dataset-assets.md)
@@ -189,6 +206,7 @@ uv sync --extra dev
 uv run pytest --cov=cnd_mne
 uv run ruff check .
 uv run ruff format --check .
+uv run mypy src/cnd_mne
 ```
 
 Large public datasets are intentionally excluded from Git history. They are

@@ -429,6 +429,63 @@ def test_atomic_writer_cleans_temporary_file_on_failure(monkeypatch, tmp_path) -
     assert not list(tmp_path.iterdir())
 
 
+def test_dataset_writer_publishes_nothing_if_second_serialization_fails(
+    sample_recording, monkeypatch, tmp_path
+) -> None:
+    real_savemat = cnd_io.savemat
+    calls = 0
+
+    def fail_second(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("stimulus serialization failed")
+        return real_savemat(*args, **kwargs)
+
+    monkeypatch.setattr(cnd_io, "savemat", fail_second)
+
+    with pytest.raises(RuntimeError, match="stimulus serialization failed"):
+        write_cnd(sample_recording, tmp_path)
+
+    assert not (tmp_path / "dataSub1.mat").exists()
+    assert not (tmp_path / "dataStim.mat").exists()
+    assert not list(tmp_path.glob(".*.mat"))
+
+
+def test_dataset_writer_restores_overwritten_files_if_publish_fails(
+    sample_recording, monkeypatch, tmp_path
+) -> None:
+    paths = write_cnd(sample_recording, tmp_path)
+    originals = {
+        paths.neural: paths.neural.read_bytes(),
+        paths.stimulus: paths.stimulus.read_bytes(),
+    }
+    real_replace = cnd_io.os.replace
+    failed = False
+
+    def fail_new_stimulus_once(source, destination):
+        nonlocal failed
+        source_path = cnd_io.Path(source)
+        destination_path = cnd_io.Path(destination)
+        if (
+            not failed
+            and destination_path.name == "dataStim.mat"
+            and source_path.suffix == ".mat"
+        ):
+            failed = True
+            raise OSError("publish failed")
+        return real_replace(source, destination)
+
+    monkeypatch.setattr(cnd_io.os, "replace", fail_new_stimulus_once)
+
+    with pytest.raises(OSError, match="publish failed"):
+        write_cnd(sample_recording, tmp_path, overwrite=True)
+
+    assert {path: path.read_bytes() for path in originals} == originals
+    assert not list(tmp_path.glob("*.backup"))
+    assert not list(tmp_path.glob(".*.mat"))
+
+
 def test_small_path_and_scalar_helpers(tmp_path) -> None:
     with pytest.raises(FileNotFoundError, match="dataStim.mat"):
         cnd_io._resolve_stimulus_file(tmp_path, None, required=True)

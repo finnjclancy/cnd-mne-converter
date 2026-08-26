@@ -68,9 +68,10 @@ def read_cnd(
             data_directory, subject, required=False
         )
         neural = read_cnd_neural(neural_path) if neural_path is not None else None
+        selected_stimulus = stimulus_path or inferred_stimulus
         stimulus = (
-            read_cnd_stimulus(stimulus_path or inferred_stimulus)
-            if load_stimulus and (stimulus_path or inferred_stimulus)
+            read_cnd_stimulus(selected_stimulus)
+            if load_stimulus and selected_stimulus is not None
             else None
         )
         recording = CNDRecording(neural, stimulus)
@@ -148,11 +149,15 @@ def write_cnd(
     output_dir = Path(destination).expanduser()
     subject_label = _canonical_subject_label(subject)
 
-    planned_paths: list[Path] = []
-    if recording.neural is not None:
-        planned_paths.append(output_dir / f"dataSub{subject_label}.mat")
-    if recording.stimulus is not None:
-        planned_paths.append(output_dir / "dataStim.mat")
+    neural_path = (
+        output_dir / f"dataSub{subject_label}.mat"
+        if recording.neural is not None
+        else None
+    )
+    stimulus_path = (
+        output_dir / "dataStim.mat" if recording.stimulus is not None else None
+    )
+    planned_paths = [path for path in (neural_path, stimulus_path) if path is not None]
     if not overwrite:
         existing = [path for path in planned_paths if path.exists()]
         if existing:
@@ -160,24 +165,26 @@ def write_cnd(
             raise FileExistsError(f"Refusing to overwrite {formatted}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    neural_path: Path | None = None
-    stimulus_path: Path | None = None
+    planned_outputs: list[tuple[Path, dict[str, Any]]] = []
     if recording.neural is not None:
-        neural_path = output_dir / f"dataSub{subject_label}.mat"
-        payload = {recording.neural.variable_name: _neural_to_mat(recording.neural)}
-        _atomic_savemat(
-            neural_path, payload, overwrite, compression, mat_version=mat_version
+        assert neural_path is not None
+        planned_outputs.append(
+            (
+                neural_path,
+                {recording.neural.variable_name: _neural_to_mat(recording.neural)},
+            )
         )
     if recording.stimulus is not None:
-        stimulus_path = output_dir / "dataStim.mat"
-        _atomic_savemat(
-            stimulus_path,
-            {"stim": _stimulus_to_mat(recording.stimulus)},
-            overwrite,
-            compression,
-            mat_version=mat_version,
+        assert stimulus_path is not None
+        planned_outputs.append(
+            (stimulus_path, {"stim": _stimulus_to_mat(recording.stimulus)})
         )
+    _atomic_save_many(
+        planned_outputs,
+        overwrite=overwrite,
+        compression=compression,
+        mat_version=mat_version,
+    )
     return CNDPaths(neural_path, stimulus_path)
 
 
@@ -243,8 +250,8 @@ def _decode_mcos_strings(value: Any, workspace: Any) -> Any:
             return item
         if array is not None and array.dtype == object:
             output = np.empty(array.shape, dtype=object)
-            for index in np.ndindex(array.shape):
-                output[index] = resolve(array[index])
+            for object_index in np.ndindex(array.shape):
+                output[object_index] = resolve(array[object_index])
             return output
         return item
 
@@ -554,7 +561,10 @@ def _parse_channel_locations(value: Any) -> tuple[dict[str, Any], ...] | None:
                     "pos": np.asarray(positions[index]),
                 }
                 for key in ("width", "height"):
-                    values = np.atleast_1d(value.get(key)).ravel()
+                    optional_value = value.get(key)
+                    if optional_value is None:
+                        continue
+                    values = np.atleast_1d(optional_value).ravel()
                     if values.size == labels.size:
                         location[key] = values[index]
                 locations.append(location)
@@ -567,14 +577,14 @@ def _parse_channel_locations(value: Any) -> tuple[dict[str, Any], ...] | None:
         if not lengths:
             return (dict(value),)
         count = max(lengths)
-        locations: list[dict[str, Any]] = []
+        columnar_locations: list[dict[str, Any]] = []
         for index in range(count):
-            location: dict[str, Any] = {}
+            columnar_location: dict[str, Any] = {}
             for key, item in value.items():
                 values = np.atleast_1d(item).ravel()
-                location[key] = values[index] if values.size > 1 else values[0]
-            locations.append(location)
-        return tuple(locations)
+                columnar_location[key] = values[index] if values.size > 1 else values[0]
+            columnar_locations.append(columnar_location)
+        return tuple(columnar_locations)
     if isinstance(value, (list, tuple)):
         if all(isinstance(item, Mapping) for item in value):
             return tuple(dict(item) for item in value)
@@ -727,6 +737,22 @@ def _atomic_savemat(
     if path.exists() and not overwrite:
         raise FileExistsError(f"Refusing to overwrite {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = _prepare_mat(path, payload, compression, mat_version=mat_version)
+    try:
+        os.replace(temporary, path)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def _prepare_mat(
+    path: Path,
+    payload: dict[str, Any],
+    compression: bool,
+    *,
+    mat_version: Literal["5", "7.3"],
+) -> Path:
+    """Serialize one MAT payload beside its destination without publishing it."""
     handle = tempfile.NamedTemporaryFile(
         prefix=f".{path.stem}.", suffix=".mat", dir=path.parent, delete=False
     )
@@ -752,23 +778,81 @@ def _atomic_savemat(
                 truncate_existing=True,
                 compress=compression,
             )
-        os.replace(temporary, path)
+        return temporary
     except Exception:
         temporary.unlink(missing_ok=True)
         raise
 
 
+def _atomic_save_many(
+    outputs: Sequence[tuple[Path, dict[str, Any]]],
+    *,
+    overwrite: bool,
+    compression: bool,
+    mat_version: Literal["5", "7.3"],
+) -> None:
+    """Publish a neural/stimulus file set together, rolling back on failure."""
+    if not outputs:
+        return
+    if not overwrite:
+        existing = [path for path, _ in outputs if path.exists()]
+        if existing:
+            formatted = ", ".join(str(path) for path in existing)
+            raise FileExistsError(f"Refusing to overwrite {formatted}")
+
+    prepared: list[tuple[Path, Path]] = []
+    backups: list[tuple[Path, Path]] = []
+    published: list[Path] = []
+    try:
+        # Complete every potentially expensive serialization before touching
+        # any existing destination file.
+        for path, payload in outputs:
+            prepared.append(
+                (
+                    path,
+                    _prepare_mat(path, payload, compression, mat_version=mat_version),
+                )
+            )
+        for path, temporary in prepared:
+            if path.exists():
+                backup_handle = tempfile.NamedTemporaryFile(
+                    prefix=f".{path.stem}.",
+                    suffix=".backup",
+                    dir=path.parent,
+                    delete=False,
+                )
+                backup = Path(backup_handle.name)
+                backup_handle.close()
+                backup.unlink()
+                os.replace(path, backup)
+                backups.append((path, backup))
+            os.replace(temporary, path)
+            published.append(path)
+    except Exception:
+        for path in reversed(published):
+            path.unlink(missing_ok=True)
+        for path, backup in reversed(backups):
+            if backup.exists():
+                os.replace(backup, path)
+        raise
+    finally:
+        for _, temporary in prepared:
+            temporary.unlink(missing_ok=True)
+        for _, backup in backups:
+            backup.unlink(missing_ok=True)
+
+
 def _resolve_subject_file(directory: Path, subject: str | int | None) -> Path | None:
     if subject is not None:
-        candidates = (
+        subject_candidates = (
             directory / f"dataSub{subject}.mat",
             directory / f"pre_dataSub{subject}.mat",
             directory / f"dataParticipant_{subject}.mat",
         )
-        for candidate in candidates:
+        for candidate in subject_candidates:
             if candidate.exists():
                 return candidate
-        raise FileNotFoundError(candidates[0])
+        raise FileNotFoundError(subject_candidates[0])
     candidates = sorted(
         {
             *directory.glob("dataSub*.mat"),

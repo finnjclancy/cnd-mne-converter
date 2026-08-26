@@ -49,6 +49,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--no-round-trip", action="store_true", help="skip MNE-to-CND round trip"
     )
     verify_parser.add_argument(
+        "--serialized-round-trip",
+        action="store_true",
+        help="also write and reread temporary MATLAB files (slower)",
+    )
+    verify_parser.add_argument(
+        "--mat-version",
+        choices=("5", "7.3"),
+        default="5",
+        help="MATLAB format used by --serialized-round-trip (default: 5)",
+    )
+    verify_parser.add_argument(
         "--no-mne-smoke",
         action="store_true",
         help="skip the MNE Welch PSD smoke test",
@@ -76,6 +87,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             neural_unit=args.neural_unit,
             strict_spec=args.strict_spec,
             round_trip=not args.no_round_trip,
+            serialized_round_trip=args.serialized_round_trip,
+            serialized_mat_version=args.mat_version,
             mne_smoke_test=not args.no_mne_smoke,
         )
         payload = json.dumps(report.to_dict(), indent=2) + "\n"

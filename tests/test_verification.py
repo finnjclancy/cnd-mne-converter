@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
 import mne
 import numpy as np
@@ -9,7 +10,13 @@ from scipy.io import savemat
 
 from cnd_mne import CNDNeural, CNDRecording, verify_dataset, write_cnd
 from cnd_mne.cli import main
-from cnd_mne.verification import _mne_psd_is_finite
+from cnd_mne.verification import (
+    _metadata_equal,
+    _mne_psd_is_finite,
+    _optional_trial_values_equal,
+    _serialized_round_trip,
+    _stimulus_values_equal,
+)
 
 
 def test_verify_dataset_exercises_mne_and_round_trip(
@@ -25,11 +32,34 @@ def test_verify_dataset_exercises_mne_and_round_trip(
     assert subject.mne_created
     assert subject.mne_shape_verified
     assert subject.stimulus_mne_views_verified
+    assert subject.external_mne_views_verified
     assert subject.mne_psd_finite
     assert subject.round_trip_verified
     assert subject.mne_max_abs_error_source_units < 1e-12
     assert subject.round_trip_max_abs_error_source_units < 1e-12
     assert report.to_dict()["summary"]["n_trials"] == 2
+
+
+@pytest.mark.parametrize("mat_version", ["5", "7.3"])
+def test_verify_dataset_can_exercise_serialized_round_trip(
+    sample_recording, tmp_path, mat_version
+) -> None:
+    write_cnd(sample_recording, tmp_path, subject=1)
+
+    report = verify_dataset(
+        tmp_path,
+        neural_unit="uV",
+        serialized_round_trip=True,
+        serialized_mat_version=mat_version,
+    )
+    subject = report.subjects[0]
+
+    assert report.passed
+    assert report.schema_version == 4
+    assert report.serialized_round_trip_requested
+    assert report.serialized_mat_version == mat_version
+    assert subject.serialized_round_trip_verified
+    assert subject.serialized_round_trip_max_abs_error_source_units < 1e-12
 
 
 def test_verify_cli_writes_json_report(sample_recording, tmp_path, capsys) -> None:
@@ -43,6 +73,9 @@ def test_verify_cli_writes_json_report(sample_recording, tmp_path, capsys) -> No
             str(dataset),
             "--neural-unit",
             "uV",
+            "--serialized-round-trip",
+            "--mat-version",
+            "7.3",
             "--output",
             str(output),
         ]
@@ -53,6 +86,8 @@ def test_verify_cli_writes_json_report(sample_recording, tmp_path, capsys) -> No
     assert result == 0
     assert printed == saved
     assert saved["summary"]["passed"]
+    assert saved["serialized_round_trip_requested"]
+    assert saved["serialized_mat_version"] == "7.3"
 
 
 def test_verify_without_unit_performs_structural_checks_only(
@@ -66,8 +101,45 @@ def test_verify_without_unit_performs_structural_checks_only(
     assert report.passed
     assert subject.outcome == "structural_pass"
     assert not report.round_trip_requested
+    assert not report.serialized_round_trip_requested
     assert not report.mne_smoke_test_requested
     assert not subject.mne_created
+
+
+def test_serialized_verification_arguments_are_consistent(
+    sample_recording, tmp_path
+) -> None:
+    write_cnd(sample_recording, tmp_path)
+
+    with pytest.raises(ValueError, match="serialized_mat_version"):
+        verify_dataset(tmp_path, serialized_mat_version="8")
+    with pytest.raises(ValueError, match="requires round_trip"):
+        verify_dataset(tmp_path, serialized_round_trip=True, round_trip=False)
+
+
+def test_serialized_comparison_helpers_cover_optional_and_changed_data(
+    sample_recording,
+) -> None:
+    stimulus_only = CNDRecording(stimulus=sample_recording.stimulus)
+    assert _serialized_round_trip(stimulus_only, mat_version="5") == (True, 0.0)
+
+    assert _stimulus_values_equal(stimulus_only, stimulus_only)
+    assert not _stimulus_values_equal(stimulus_only, CNDRecording())
+    changed_stimulus = replace(sample_recording.stimulus, names=("changed", "onset"))
+    assert not _stimulus_values_equal(
+        stimulus_only, CNDRecording(stimulus=changed_stimulus)
+    )
+
+    trials = (np.ones((2, 1)),)
+    assert _optional_trial_values_equal(None, None)
+    assert not _optional_trial_values_equal(None, trials)
+    assert _optional_trial_values_equal(trials, trials)
+    assert not _optional_trial_values_equal(trials, (np.zeros((2, 1)),))
+
+    assert _metadata_equal(None, None)
+    assert not _metadata_equal(None, 1)
+    assert _metadata_equal(np.array([1, 2]), np.array([1, 2]))
+    assert not _metadata_equal(np.array([1, 2]), np.array([1, 3]))
 
 
 def test_verify_reports_missing_dataset_and_subject_failure(

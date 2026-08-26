@@ -13,6 +13,7 @@ uv sync --extra dev
 uv run pytest --cov=cnd_mne
 uv run ruff check .
 uv run ruff format --check .
+uv run mypy src/cnd_mne
 uv build
 ```
 
