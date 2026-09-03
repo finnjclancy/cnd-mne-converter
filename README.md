@@ -135,7 +135,7 @@ MNE does not speak MATLAB, and it does not like unequal-length trials. So this p
 3. **Give MNE one `Raw` per trial.** `rec.raws[0]` is trial 1, `rec.raws[1]` is trial 2, and so on. They are not glued together.
 4. **Hang the leftover CND on `rec.cnd`.** When you filter a `Raw` and write back, we start from that copy so the envelope and trial order are still there. A lone MNE `Raw` cannot invent them.
 
-A short notebook that does this on the bundled example: [examples/walkthrough.ipynb](examples/walkthrough.ipynb).
+A notebook that does this twice: [examples/walkthrough.ipynb](examples/walkthrough.ipynb). Part 1 uses the tiny bundled example. Part 2 downloads the CNSP Lalor Natural Speech sample (~120 MB) and does the same on real EEG.
 
 The public CND files I actually ran are listed in [docs/results](docs/results/README.md) (1,026 neural files). [docs/dataset-compatibility.md](docs/dataset-compatibility.md) is the short version of what those files look like. Open questions for the lab are in [docs/questions-for-maintainers.md](docs/questions-for-maintainers.md).
 
