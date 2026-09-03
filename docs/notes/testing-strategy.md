@@ -1,8 +1,8 @@
 # Tests
 
-Statement coverage only answers "did this line run". It is not "percent of datasets supported" and it is not scientific correctness.
+Coverage only means "did this line run". It is not "percent of datasets supported" and it is not scientific correctness.
 
-116 tests, 95.34% coverage. The rest is mostly defensive branches. CI fails if coverage drops below 95%. Add tests for new behaviour; do not farm coverage by mocking away the public API.
+116 tests, 95.34% coverage. The rest is mostly defensive branches. CI fails if coverage drops below 95%. Add tests for new behaviour; do not farm coverage by mocking the public API away.
 
 ## What the suite actually covers
 
@@ -10,7 +10,7 @@ Statement coverage only answers "did this line run". It is not "percent of datas
 
 **Committed fixtures** — small `.mat` and `.fif` files, plus install-testing the wheel and sdist. Mypy on the public API.
 
-**Public datasets** — `verify-dataset` locally, not in git. Parse, validate, build MNE, compare numbers, stimulus views, a Welch PSD, template round trip. `--serialized-round-trip` also hits the real MATLAB writer. JSON lives in [results](../results/README.md).
+**Public datasets** — `verify-dataset` locally, not in git. Parse, validate, build MNE, compare numbers, stimulus views, a Welch PSD, write back through the original CND. `--serialized-round-trip` also hits the real MATLAB writer. JSON is in [results](../results/README.md).
 
 ## Still needs a human
 

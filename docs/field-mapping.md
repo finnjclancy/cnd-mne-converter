@@ -1,52 +1,44 @@
 # Field mapping
 
-What CND fields become, and what is still a guess if you do not pass extra arguments.
+What a CND field becomes in this package. If you do not pass extra arguments, some of this stays a guess (units, coordinate frame).
 
-| CND concept | Canonical representation | MNE representation | Policy / risk |
+| CND | Inside the package | In MNE | Notes |
 | --- | --- | --- | --- |
-| `eeg.data` | Tuple of `time x channels` arrays | One `RawArray` per trial, transposed to `channels x time` | No implicit concatenation or padding |
-| `eeg.fs` | `CNDNeural.sfreq` | `Info["sfreq"]` | Direct mapping |
-| Stored EEG values | Original numerical values plus optional `data_unit` | Floating-point volts | Unit must be declared or explicitly supplied |
-| `eeg.dataType` | `CNDNeural.data_type` | MNE `eeg` channel type | Opaque legacy strings fall back to the variable name |
-| fNIRS `data` signal-type x trial grid | Combined `time x channels` trials plus retained block sizes | HbO `hbo`, HbR `hbr`, and HbT `misc` channels | The original grid is reconstructed during template-backed export |
-| fNIRS `datatype` | `signal_types` and `channels_per_signal_type` | Deterministic channel names and types | MNE has no HbT type; its values and CND label are preserved without mislabelling it HbO/HbR |
-| Stored fNIRS values | Original values plus optional `data_unit` | Floating-point molar concentrations | Unit must be declared or explicitly supplied; `M`, `mM`, `uM`, and `nM` are supported |
-| `eeg.deviceName` | `CNDNeural.device_name` | Provenance in `Info["description"]` | MNE has no universal device-name field |
-| `eeg.chanlocs` | Tuple of field-preserving dictionaries | Optional `DigMontage` | EEGLAB axis mapping and scale to metres are opt-in |
-| 2D topomap-layout `chanlocs` | Real channel labels plus retained raw layout | Channel names only | `COMNT`/`SCALE` drawing helpers are excluded; global outline/mask data is preserved for export |
-| `eeg.extChan` | Separate external trial arrays, description, and additional fields | Retained in companion model, not added to neural `Raw` by default | Channel type, names, and units can be ambiguous |
-| `extChan.<type>` named groups | Deterministically combined trials plus retained names and channel counts | Same explicit external-channel view | Alphabetical group order is used because v5/v7.3 readers expose MATLAB struct fields in different orders |
-| `eeg.origTrialPosition` | One-based stored values | Retained in companion model | Never collapse into bare `Raw` |
-| `eeg.paddingStartSample` | Preserved verbatim | Not yet converted to annotations | Needed for precise stimulus onset alignment |
-| `stim.data` | `feature -> trial -> ndarray` | Companion `CNDStimulus`; optional `misc` `RawArray` views | Never force arbitrary features into physiological channels |
-| `stim.fs` | Independent stimulus sampling rate | Companion and stimulus-view time base | CND 1.0 requires equality with neural `fs`; tolerant mode preserves observed legacy mismatches |
-| `stim.names` | Feature names | Companion metadata | Direct mapping |
-| `stim.stimIdxs` | Stored values or `None` | Companion trial metadata | Missing legacy values warn; ordinal one-based values are available as a derived view |
-| `stim.condIdxs` | Numeric or string values | Companion trial metadata | Legacy AAD uses strings rather than numeric indices |
-| `stim.condNames` | Optional condition labels | Companion metadata | Some datasets encode labels directly in `condIdxs` |
-| `cndVersion` | Optional numeric version metadata | Companion provenance | Numeric type is preserved; public legacy datasets often omit it |
-| Additional fields | `extra_fields` | Companion metadata | Preserved when MATLAB-serializable |
-| Additional top-level modality variables | `CNDRecording.additional_variables` | Retained beside the selected MNE modality | Caller selects one variable; all others survive template-backed export |
+| `eeg.data` | time × channels arrays | one `Raw` per trial (`channels × time`) | trials are not glued or padded |
+| `eeg.fs` | `sfreq` | `Info["sfreq"]` | copied as-is |
+| stored EEG values | original numbers + optional unit | MNE wants volts | you must declare or pass the unit |
+| `eeg.dataType` | `data_type` | channel type `eeg` | weird MATLAB strings fall back to the variable name |
+| fNIRS `data` grid | combined trials, original block sizes kept | HbO `hbo`, HbR `hbr`, HbT `misc` | the grid is rebuilt on write-back |
+| fNIRS `datatype` | signal types + channels per type | names and types | MNE has no HbT type, so those channels stay `misc` |
+| stored fNIRS values | original numbers + optional unit | molar concentration | `M` / `mM` / `uM` / `nM` if you pass them |
+| `eeg.deviceName` | `device_name` | stuffed into `Info["description"]` | MNE has no proper device field |
+| `eeg.chanlocs` | dicts, original fields kept | optional `DigMontage` | EEGLAB axes and metres are opt-in |
+| 2D topomap `chanlocs` | real labels + raw layout | names only | `COMNT`/`SCALE` are drawing helpers, not electrodes |
+| `eeg.extChan` | separate arrays | not mixed into the EEG `Raw` unless you ask | types/units can be unclear |
+| `extChan.<type>` named groups | combined in a stable order | same, as an extra view | v5 and v7.3 return struct fields in different orders, so groups are sorted by name |
+| `eeg.origTrialPosition` | one-based values as stored | stays on `rec.cnd` | never folded into a bare `Raw` |
+| `eeg.paddingStartSample` | kept as-is | not annotations yet | needed if you care about stimulus onset vs padding |
+| `stim.data` | feature → trial → array | `rec.cnd` plus optional `misc` views | envelopes are not EEG channels |
+| `stim.fs` | its own rate | stimulus-view time base | CND 1.0 wants this equal to neural `fs`; Alice is not |
+| `stim.names` | feature names | metadata | copied |
+| `stim.stimIdxs` | stored values or missing | metadata | AAD omits this |
+| `stim.condIdxs` | numbers or strings | metadata | AAD uses strings |
+| `stim.condNames` | optional labels | metadata | sometimes the label is already in `condIdxs` |
+| `cndVersion` | optional number | metadata | public files often skip it |
+| extra fields | `extra_fields` | on `rec.cnd` | kept if MATLAB can write them |
+| other top-level modalities | `additional_variables` | not the selected `Raw` | they come back on template write |
 
-## Invariants
+## Rules we do not break quietly
 
-- Neural trial `i` remains paired with stimulus trial `i`.
-- Trial order and original presentation order remain distinguishable.
-- Neural and stimulus clocks remain separate in memory; a mismatch is a CND 1.0
-  conformance warning or strict-mode error.
-- Alignment is compared using duration in seconds, never raw sample count.
-- Legacy empty trials and unequal feature lengths are preserved with warnings;
-  strict validation rejects those CND conformance deviations.
-- No unit conversion occurs without a declared input unit.
-- No coordinate conversion occurs without an explicit transform and scale.
-- Unsupported information is reported rather than silently discarded.
-- A subject file with multiple modality variables never loses the unselected
-  variables during a controlled round trip.
+- Neural trial `i` stays paired with stimulus trial `i`
+- Presentation order (`origTrialPosition`) is separate from file order
+- Neural and stimulus clocks stay separate. A mismatch is a warning, or an error with `--strict-spec`
+- We compare duration in seconds, not raw sample counts
+- Empty trials and one-sample-off features stay as they are (warn). Strict mode rejects them
+- No unit or coordinate conversion unless you asked
+- Unknown fields are reported, not dropped
+- If a subject file has extra modalities, the ones you did not open still survive a round trip
 
 ## One-based indices
 
-The canonical model preserves CND values exactly as stored, including MATLAB's
-one-based `stimIdxs` and `origTrialPosition`. This improves round-trip fidelity.
-Python consumers can use `CNDStimulus.resolved_stimulus_indices`; when a legacy
-file omits `stimIdxs`, it provides derived ordinal values `1..n` without
-pretending that the source file contained them.
+MATLAB counts from 1. We keep `stimIdxs` and `origTrialPosition` that way. Python code that wants a filled-in list can use `CNDStimulus.resolved_stimulus_indices` — if the file omitted `stimIdxs`, that helper invents `1..n` and does not pretend the file contained them.

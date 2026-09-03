@@ -1,50 +1,40 @@
 # Scientific checks
 
-A round trip passing does not mean the recording is correctly scaled. Someone who knows the experiment still has to sign the items below.
+A round trip passing does not mean the recording is correctly scaled. Someone who knows the experiment still has to tick these.
 
-## Source provenance
+## Source
 
-- Record the source URL, archive checksum, dataset version, licence, and any
-  participant-data restrictions.
-- Confirm that the neural and stimulus files belong to the same release.
-- Record preprocessing already applied before CND creation.
+- URL, archive checksum, dataset version, licence, any participant-data restrictions
+- Neural and stimulus files from the same release
+- What preprocessing was already applied before CND
 
 ## Neural values
 
-- Confirm the physical unit stored in every neural and external channel group.
-- Confirm channel type, reference, sampling rate, filters, and bad channels.
-- Compare selected samples against MATLAB or the acquisition export before and
-  after conversion.
-- Confirm that MNE plots and summary amplitudes are plausible in SI units.
+- Physical unit on every neural and extra-channel group
+- Channel type, reference, sampling rate, filters, bad channels
+- Spot-check samples against MATLAB or the acquisition export, before and after conversion
+- MNE plots and amplitudes should look plausible in SI units
 
-## Sensors and coordinates
+## Sensors
 
-- Confirm coordinate unit, axis orientation, origin, and coordinate frame.
-- Plot the montage and check identifiable electrodes independently.
-- Do not enable the EEGLAB-to-MNE transform from visual plausibility alone.
+- Coordinate unit, axes, origin, frame
+- Plot the montage and check a few known electrodes
+- Do not turn on the EEGLAB-to-MNE transform just because the map "looks right"
 
 ## Trials and stimuli
 
-- Confirm trial order, rejected trials, original positions, padding, and
-  duration differences.
-- Confirm the stimulus clock and whether onset vectors are events or continuous
-  regressors.
-- Confirm attended/unattended alternatives and condition labels.
-- Verify at least three known event times against the experiment log or audio.
+- Trial order, rejected trials, original positions, padding, duration differences
+- Stimulus clock; are onsets events or continuous regressors?
+- Attended/unattended alternatives and condition labels
+- At least three known event times against the experiment log or audio
 
 ## Independent comparison
 
-- Load the same subject with the original MATLAB code and, where applicable,
-  NAPlib or Eelbrain.
-- Compare shapes, channel order, trial order, sampling rates, amplitudes,
-  stimulus values, and event times.
-- Run one representative MNE analysis and compare its result with an existing
-  reference analysis.
-- Export to CND, reopen it independently, and compare the fields that are
-  expected to survive.
+- Same subject in the original MATLAB code, and NAPlib/Eelbrain if they apply
+- Shapes, channel order, trial order, rates, amplitudes, stimulus values, event times
+- One representative MNE analysis vs an existing reference
+- Export to CND, reopen it independently, compare the fields that should survive
 
-## Sign-off record
+## Sign-off
 
-Record the dataset, subject, source checksums, converter version, MNE version,
-explicit unit and coordinate arguments, numerical tolerances, reviewer, date,
-and unresolved caveats. Keep that record with the generated verification JSON.
+Write down dataset, subject, source checksums, converter version, MNE version, the unit and coordinate arguments you passed, tolerances, who reviewed it, date, leftover caveats. Keep that next to the verification JSON.

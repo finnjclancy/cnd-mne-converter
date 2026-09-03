@@ -18,7 +18,7 @@ You get an `MNECNDRecording`:
 - `raws` — one `Raw` per neural trial
 - `cnd` — the rest of the file
 - `stimulus_raws(feature)` / `stimulus_annotations(feature)` / `external_raws(...)`
-- `concatenate()` — opt-in, with boundary annotations on the fake joins
+- `concatenate()` — opt-in, with markers on the fake joins
 
 Returning one bare `Raw` would mean silently concatenating, padding, resampling, or dropping stimulus data. That is a scientific decision, not an I/O detail.
 
@@ -31,6 +31,6 @@ recording.write_cnd("derived/dataCND", output_unit="uV")
 
 Building CND from unrelated MNE data is possible, but you have to supply the stimulus/experiment bits MNE does not have.
 
-Suggested order if they want it in core: ask on the forum, then a design issue, then a small reader + fixtures, then the adapter, export later, TRF files later still. [Contribution guide](https://mne.tools/stable/development/contributing.html).
+If they want it in core: ask on the forum, then a design issue, then a small reader + fixtures, then the adapter, export later, TRF files later still. [Contribution guide](https://mne.tools/stable/development/contributing.html).
 
 Open questions: in MNE or a separate package? One `Raw` per trial ok? If they insist on a single `Raw`, should core be a lossy neural-only reader? Default to separate trials or concatenated? Where do continuous stimulus features live? Is export in scope?

@@ -1,33 +1,11 @@
-# ADR 0002: Represent each CND trial as a separate MNE Raw object
+# Why one MNE Raw per trial
 
-- Status: Accepted
-- Date: 2026-08-23
+Accepted 23 August 2026.
 
-## Context
+CND trials can be different lengths. MNE `Raw` is one continuous timeline. `Epochs` wants equal lengths.
 
-CND stores neural data as a cell array of `time x channels` trials. Trial
-lengths can differ. MNE `Raw` represents one continuous timeline, while
-`Epochs` normally represents equal-length trials.
+Gluing trials would create fake joins (filters would bleed across them). Padding to make Epochs would invent samples.
 
-Concatenating CND trials would create artificial joins. Filtering across those
-joins could mix samples from unrelated recordings. Padding all trials to create
-`Epochs` would invent data and obscure their true duration.
+So the adapter returns one `Raw` per trial, on `MNECNDRecording`. `concatenate()` is opt-in. MNE marks the fake joins (`BAD boundary` / `EDGE boundary`); we also add `CND_TRIAL/*` and `trial_slices`.
 
-## Decision
-
-The first adapter returns one `mne.io.RawArray` per CND trial, wrapped in
-`MNECNDRecording`. Trial order remains the canonical model's order.
-
-No implicit concatenation or padding is performed. The explicit
-`MNECNDRecording.concatenate()` helper creates a copied continuous view. MNE
-inserts `BAD boundary` and `EDGE boundary` annotations, while the converter adds
-`CND_TRIAL/*` annotations and exposes the exact `trial_slices`.
-
-## Consequences
-
-- Variable-duration trials are represented without invented data.
-- MNE operations are applied per trial unless the user explicitly combines
-  them.
-- The public API differs from conventional `mne.io.read_raw_*` readers that
-  return one `Raw` object. This must be discussed before proposing an upstream
-  MNE API.
+This is different from `mne.io.read_raw_*`, which returns one `Raw`. That needs a conversation before anyone proposes it upstream.

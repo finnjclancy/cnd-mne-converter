@@ -1,33 +1,9 @@
-# ADR 0004: Keep stimulus features in a companion CND model
+# Why stimulus tracks stay on rec.cnd
 
-- Status: Accepted
-- Date: 2026-08-23
+Accepted 23 August 2026.
 
-## Context
+CND stimulus features can be envelopes, sparse onsets, spectrograms, phonetic matrices, musical expectation, and they can run on a different clock from the EEG. Stuffing all of that into MNE `Raw` would make filters treat predictors like brain channels, and you would lose feature-axis metadata on the way back.
 
-CND stimulus features can be scalar envelopes, sparse onset vectors,
-spectrograms, phonetic feature matrices, or musical expectation signals. They
-can use a sampling rate different from the neural data. MNE `Raw` channel types
-do not provide a faithful universal representation for these feature sets.
+So features live in `CNDStimulus` as `feature → trial → array`. `stimulus_raws()` is an optional view (`misc` channels, stimulus clock). Sparse events can become annotations later; that would still be a view, not the source of truth.
 
-Forcing all features into `Raw` would make MNE filtering and channel-selection
-operations treat experimental predictors like physiological channels. It would
-also lose feature-axis metadata and complicate round-trip export.
-
-## Decision
-
-Keep stimulus features in `CNDStimulus`, indexed as
-`feature -> trial -> ndarray`. `MNECNDRecording` pairs this companion data with
-the MNE neural trials. `MNECNDRecording.stimulus_raws()` provides an optional
-derived MNE view: each feature dimension becomes a `misc` channel and keeps the
-stimulus sampling rate and arbitrary numerical units.
-
-Sparse event features may later gain an opt-in conversion to MNE annotations,
-but that will be a derived view rather than the canonical representation.
-
-## Consequences
-
-- Arbitrary continuous features and their native clock are preserved.
-- A bare MNE `Raw` is intentionally not considered a lossless CND conversion.
-- MNE-to-CND export requires the companion stimulus object or new stimulus
-  metadata supplied by the caller.
+A bare `Raw` is not a lossless CND conversion. Export needs `rec.cnd` or new stimulus metadata from you.

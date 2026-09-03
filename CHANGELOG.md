@@ -1,36 +1,24 @@
 # Changelog
 
-All notable changes are documented here. The project follows semantic
-versioning once it reaches its first tagged release.
+Nothing is tagged as a real release yet. This is what is on `main`.
 
 ## Unreleased
 
-### Added
+- Read and write CND for EEG and the public-catalogue fNIRS layout
+- MATLAB v5 and v7.3
+- `read_cnd_mne()` and `write_cnd()`
+- Optional views for extra sensors and sparse events
+- Tolerant mode for old files, `--strict-spec` for new CND
+- Ran `verify-dataset` on the public catalogue (JSON in `docs/results/`)
+- Optional on-disk MATLAB round trip
+- Writes are transactional (neural + stim together, or neither)
+- CI: tests, ruff, mypy, wheel/sdist install, locked-dependency audit
+- More than one recording type in one subject file: pick one, keep the rest
+- Named `extChan.<type>` groups, same channel order in v5 and v7.3
+- Dependabot for Python and Actions
 
-- Bidirectional CND and MNE conversion for EEG and observed fNIRS layouts.
-- MATLAB v5 and v7.3/HDF5 reading and transactional writing.
-- Direct `read_cnd_mne()` and `MNECNDRecording.write_cnd()` APIs.
-- Explicit MNE views for external channels and sparse stimulus annotations.
-- Tolerant legacy and strict CND 1.0 validation.
-- Full public-catalogue verification and machine-readable evidence.
-- Optional on-disk MATLAB v5/v7.3 verification and external-channel view checks.
-- Transactional publication and rollback for neural/stimulus output pairs.
-- Wheel and source-distribution installation smoke tests in CI.
-- PEP 561 typing marker and a passing Mypy CI check.
-- Explicit selection and lossless preservation of multiple recording-modality
-  variables in one CND subject file.
-- CND 1.0 `extChan.<type>` parsing and reconstruction with stable v5/v7.3
-  channel-group ordering.
-- Locked-dependency and source security audits in CI.
-- Monthly Dependabot checks for Python and GitHub Actions dependencies.
-
-### Changed
-
-- Verification schema 4 adds explicit serialized-round-trip evidence. The
-  outcome model distinguishes complete passes, structurally valid
-  zero-neural-data files, validation failures, conversion failures, and source
-  read failures.
+Verifier schema 4 can record an on-disk MATLAB round trip. Outcomes are: pass, empty-but-valid, validation fail, conversion fail, or cannot even open the source. Old JSON reports were not rewritten.
 
 ## 0.1.0.dev0 - 2026-08-25
 
-- Initial research prototype and public-catalogue interoperability milestone.
+First prototype that could open the public catalogue files.

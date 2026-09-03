@@ -1,123 +1,54 @@
 # Verification results
 
-`verify-dataset` was run on 24–25 August 2026, one subject at a time. Older JSON reports are schema 2. The current verifier is schema 4 (optional on-disk MATLAB round trip). The old files were not rewritten to pretend those extra checks ran.
+I ran `verify-dataset` on 24–25 August 2026, one subject at a time. Older JSON files are schema 2. The current tool is schema 4 (it can also write MATLAB and read it back). I did not rewrite the old files to pretend those extra checks ran.
 
-Each record is labelled `complete_pass`, `empty_neural_data`, or a failure type.
-
-| Dataset | Subjects | Trials | Result | Machine-readable evidence |
+| Dataset | Subjects | Trials | Result | JSON |
 | --- | ---: | ---: | --- | --- |
-| Lalor Natural Speech | 19 | 380 | Pass with documented legacy warnings | [JSON](lalor-natural-speech.json) |
-| AliceSpeech | 20 | 240 | Pass with documented legacy warnings | [JSON](alice-speech.json) |
-| AAD KULeuven | 16 | 128 | Pass with documented legacy warnings | [JSON](aad-kuleuven.json) |
-| Music Imagery | 21 | 1,848 | Pass with documented legacy warnings | [JSON](music-imagery.json) |
-| Lalor Reversed Speech | 10 | 200 | Pass with documented legacy warnings | [JSON](lalor-reversed-speech.json) |
-| SparrKULee2 | 56 | 212 | Pass; one empty archive placeholder skipped and recorded | [JSON](sparr-kulee2.json) |
-| Podcast fNIRS | 8 | 224 | Pass after adding signal-type grid support | [JSON](podcast-fnirs.json) |
-| ChildStories-Sysoeva | 52 | 148 | Pass after adding named-pair and MCOS string support | [JSON](child-stories-sysoeva.json) |
+| Lalor Natural Speech | 19 | 380 | Pass, with the usual legacy warnings | [JSON](lalor-natural-speech.json) |
+| AliceSpeech | 20 | 240 | Pass, with the usual legacy warnings | [JSON](alice-speech.json) |
+| AAD KULeuven | 16 | 128 | Pass, with the usual legacy warnings | [JSON](aad-kuleuven.json) |
+| Music Imagery | 21 | 1,848 | Pass, with the usual legacy warnings | [JSON](music-imagery.json) |
+| Lalor Reversed Speech | 10 | 200 | Pass, with the usual legacy warnings | [JSON](lalor-reversed-speech.json) |
+| SparrKULee2 | 56 | 212 | Pass. one 0-byte file in the zip was skipped | [JSON](sparr-kulee2.json) |
+| Podcast fNIRS | 8 | 224 | Pass after teaching the reader the HbO/HbR/HbT grid | [JSON](podcast-fnirs.json) |
+| ChildStories-Sysoeva | 52 | 148 | Pass after decoding MATLAB string objects | [JSON](child-stories-sysoeva.json) |
 | BabyRhythm adults | 68 CND files | 1,224 | Pass | [JSON](baby-rhythm-adults.json) |
-| BabyRhythm 4 months | 188 CND files | 3,368 | 180 complete passes; 8 structurally valid files contain no neural samples | [JSON](baby-rhythm-4mo.json) |
-| BabyRhythm 7 months | 188 CND files | 3,380 | Pass with retained empty-trial warnings | [JSON](baby-rhythm-7mo.json) |
-| BabyRhythm 11 months | 188 CND files | 3,384 | Pass with retained empty-trial warnings | [JSON](baby-rhythm-11mo.json) |
+| BabyRhythm 4 months | 188 CND files | 3,368 | 180 pass. 8 files have no neural samples | [JSON](baby-rhythm-4mo.json) |
+| BabyRhythm 7 months | 188 CND files | 3,380 | Pass. empty rejected trials are kept | [JSON](baby-rhythm-7mo.json) |
+| BabyRhythm 11 months | 188 CND files | 3,384 | Pass. empty rejected trials are kept | [JSON](baby-rhythm-11mo.json) |
 | VocodedSpeech | 13 | 325 | Pass | [JSON](vocoded-speech.json) |
-| FDSpeech L1 | 25 | 375 | Pass with retained feature-length warnings | [JSON](fd-speech-l1.json) |
-| FDSpeech L2 | 25 | 373 | Pass after topomap-layout support | [JSON](fd-speech-l2.json) |
-| PolyphonicBach | 31 | 993 | Pass after sparse-feature and squeeze handling | [JSON](polyphonic-bach.json) |
-| DiliBach | 20 | 600 | Pass after empty optional-metadata handling | [JSON](dilibach.json) |
-| SparrKULee1 | 78 files | 372 parsed | 77 pass; one truncated upstream HDF5 file | [JSON](sparr-kulee1.json) |
+| FDSpeech L1 | 25 | 375 | Pass. some features are one sample off | [JSON](fd-speech-l1.json) |
+| FDSpeech L2 | 25 | 373 | Pass after ignoring `COMNT`/`SCALE` drawing helpers | [JSON](fd-speech-l2.json) |
+| PolyphonicBach | 31 | 993 | Pass. sparse musical parts stay empty | [JSON](polyphonic-bach.json) |
+| DiliBach | 20 | 600 | Pass. empty `origTrialPosition` treated as missing | [JSON](dilibach.json) |
+| SparrKULee1 | 78 files | 372 parsed | 77 pass. `dataSub48.mat` is truncated in the published zip | [JSON](sparr-kulee1.json) |
 
-The generated [catalogue summary](catalog-summary.json) adds those 18 reports together: 1,026 neural CND files, 1,017 complete passes, 8 all-empty files, 1 upstream source-read failure, 17,774 parsed trials, 204,719,481 neural time samples, and 11,293,937,597 scalar neural values.
+Added up in [catalog-summary.json](catalog-summary.json): 1,026 neural files, 1,017 pass, 8 empty, 1 unreadable, 17,774 trials.
 
-SparrKULee2 has 57 matching filenames, but `dataSub33.mat` is 0 bytes in the
-authoritative ZIP; the report records and skips that placeholder, leaving the
-catalogue's 56 usable participants. Empty archive placeholders are counted
-separately from the 1,026 non-empty neural files in the aggregate.
+SparrKULee2's zip has 57 matching names. `dataSub33.mat` is 0 bytes, so the catalogue's 56 usable people is right. That placeholder is not one of the 1,026 non-empty files.
 
-For every subject, the verifier checked:
+## What each run checked
 
-1. MATLAB parsing and CND structural validation;
-2. creation of one MNE `RawArray` per neural trial;
-3. channel/time orientation and numerical values;
-4. MNE `RawArray` views of every stimulus feature set;
-5. a finite Welch power spectral density computed by MNE;
-6. template-backed MNE-to-CND numerical round trip; and
-7. preservation of CND-only metadata through that round trip.
+- MATLAB opens and the CND layout is valid
+- one MNE `Raw` per neural trial, values and orientation match
+- stimulus tracks as MNE views
+- a finite Welch PSD (needs some samples, so empty files skip this)
+- write back through the original CND template; leftover fields survive
 
-All requested checks passed for the 1,017 files containing neural samples. The maximum CND-to-MNE
-and round-trip numerical errors were both zero under the recorded identity-test
-unit assumptions. The eight all-empty files also parse, create zero-length MNE
-objects, and round-trip exactly, but cannot run the PSD analysis check. They are
-classified separately from the one unreadable source file.
+For the 1,017 files with neural samples, the numerical error was zero. That used a dummy unit of 1 (`V` in the JSON). **That does not mean the files are in volts.** Nobody wrote a unit down. Empty files still round-trip; they just have nothing to plot.
 
-Podcast fNIRS is reported separately with an explicit `M` identity-test
-assumption. Its 8 files add 224 trials and exercise 16 HbO, 16 HbR, and 16 HbT
-channels per trial. All parsing, MNE construction, stimulus views, PSD, and
-template round trips pass with zero numerical error. The source omits units,
-channel locations, and `cndVersion`; its fixed-length fNIRS windows are also
-longer than the paired variable-length stimulus features, so those differences
-remain visible as warnings.
+## Weird files, not converter bugs
 
-ChildStories adds 52 named participant/stimulus pairs and 148 trials. All
-requested checks pass with zero numerical error under the recorded `V`
-identity-test assumption. Its feature names and conditions are MATLAB MCOS
-strings; the verifier ran after confirming they decode to Speech Envelope,
-Word Onsets, Semantic Dissimilarity, HG, BW, and GD.
+- BabyRhythm counts 632 CND files because each person has four preprocessing variants. Eight of those (4-month participants 8 and 13, all four variants) have zero neural samples.
+- VocodedSpeech has no subject 13. The zip jumps to 14.
+- SparrKULee1 `dataSub48.mat`: the zip and the entry both pass CRC, but the HDF5 file ends before it says it should. Hashes are in the [manifest](../manifests/sparr-kulee1.json).
 
-BabyRhythm contains four preprocessing variants for each participant, so its
-reports count 632 neural CND files rather than pretending there are 632 unique
-participants. Tolerant mode preserves empty rejected trials as zero-sample MNE
-objects and selects the first non-empty trial for the PSD smoke check; strict
-mode continues to reject empty or unpaired trials. Exactly eight files—the four
-variants for 4-month participants 8 and 13—contain zero neural samples in every
-trial. They are recorded as `empty_neural_data`: conversion succeeds, but no
-converter can run a brain-signal analysis without brain-signal values. The other 624 files pass
-all requested checks with zero numerical error.
+## Warnings I kept on purpose
 
-VocodedSpeech adds 13 subject-specific pairs and 325 trials; the missing
-subject number 13 is a source numbering gap, not a missing download. FDSpeech
-adds 50 subjects and 748 trials across L1 and L2. It exercises 12 stimulus
-feature sets, prefixed subject filenames, one-sample feature-length deviations,
-and an MNE-style 2D topomap layout. All requested checks pass with zero
-numerical error after preserving those structures without forced alignment.
+- almost every file omits `cndVersion` and a neural unit
+- AliceSpeech is 500 Hz EEG / 50 Hz stimulus, plus 0.02 s duration drift, and no channel locations
+- AAD KULeuven has no `stimIdxs`
+- Lalor: every trial's neural and stimulus lengths differ. Five subjects have a few very long neural trials (up to 197 s extra)
+- SparrKULee2: mastoids are a different length from the EEG. 89 pairs also have duration warnings
 
-PolyphonicBach adds 31 subjects, 993 trials, and 48 stimulus feature sets. Its
-4,176 empty stimulus cells encode absent musical-part features and remain
-zero-sample MNE views. Subject 16's single-sample, 24-channel trial is restored
-from MATLAB's squeezed vector using the independently established channel
-count. All checks pass with zero numerical error.
-
-DiliBach adds 20 subjects and 600 trials; all pass after treating an empty
-optional `origTrialPosition` array as absent metadata. SparrKULee1 contains 78
-neural files and no stimulus file. Seventy-seven pass. `dataSub48.mat` cannot
-be opened because the authoritative 9,354,534,642-byte ZIP contains a
-27,776,464-byte HDF5 entry whose stored EOF lies beyond the available data.
-Both the whole ZIP and entry CRC pass, so this is an upstream truncated source
-file, not a download or converter error. Its archive/entry hashes and CRC are
-retained in the [manifest](../manifests/sparr-kulee1.json).
-
-## Important interpretation
-
-`neural_unit_assumption: "V"` is a neutral software test: multiplying and
-dividing by one makes it possible to detect orientation, copying, or mapping
-errors without guessing a dataset's real physical unit. It is **not evidence
-that these datasets contain values in volts**. Every parsable neural file in
-the catalogue omits a unit, and scientific use still requires confirmation
-from its documentation or authors.
-
-Warnings are evidence, not ignored failures. Notable examples include:
-
-- all parsable catalogue files omit a neural data unit and most omit
-  `cndVersion`;
-- AliceSpeech stores EEG at 500 Hz and stimulus features at 50 Hz, contrary to
-  the CND 1.0 same-rate requirement, and has a 0.02-second duration difference;
-- AliceSpeech has no channel locations, so generated MNE names are used;
-- AAD KULeuven omits `stimIdxs`; and
-- Lalor has neural/stimulus duration differences in every trial, including
-  seven unusually long neural trials across five subjects, with a maximum
-  difference of 197 seconds.
-- SparrKULee2 uses MATLAB v7.3/HDF5, subject-specific stimulus files, and two
-  mastoid groups; every external-channel trial differs in length from its EEG
-  trial, and 89 neural/stimulus pairs have duration warnings.
-
-Use tolerant validation for faithful reading of legacy datasets and
-`strict_spec=True` (or `--strict-spec`) when checking new CND output for CND 1.0
-conformance.
+Use the default (tolerant) reader for these old files. Use `--strict-spec` when you are checking CND you just created.
