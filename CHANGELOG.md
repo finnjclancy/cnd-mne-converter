@@ -16,8 +16,9 @@ Nothing is tagged as a real release yet. This is what is on `main`.
 - More than one recording type in one subject file: pick one, keep the rest
 - Named `extChan.<type>` groups, same channel order in v5 and v7.3
 - Dependabot for Python and Actions
+- Jupyter is in the `dev` extra so the walkthrough notebook opens after `uv sync --extra dev`
 
-Verifier schema 4 can record an on-disk MATLAB round trip. Outcomes are: pass, empty-but-valid, validation fail, conversion fail, or cannot even open the source. Old JSON reports were not rewritten.
+Verifier schema 4 can record an on-disk MATLAB round trip. Old JSON reports were not rewritten.
 
 ## 0.1.0.dev0 - 2026-08-25
 

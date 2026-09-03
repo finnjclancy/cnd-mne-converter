@@ -1,6 +1,8 @@
 # Field mapping
 
-What a CND field becomes in this package. If you do not pass extra arguments, some of this stays a guess (units, coordinate frame).
+What a CND field becomes in this package. Units and coordinate frame stay a guess unless you pass them.
+
+A lot of the public catalogue would fail a strict reading of CND 1.0. The default reader keeps what is in the file and warns. `strict_spec=True` / `--strict-spec` is for CND you just wrote.
 
 | CND | Inside the package | In MNE | Notes |
 | --- | --- | --- | --- |
@@ -28,17 +30,8 @@ What a CND field becomes in this package. If you do not pass extra arguments, so
 | extra fields | `extra_fields` | on `rec.cnd` | kept if MATLAB can write them |
 | other top-level modalities | `additional_variables` | not the selected `Raw` | they come back on template write |
 
-## Rules we do not break quietly
+Unused recording types (pupils, accel, MEG, …) stay on `additional_variables`. They are not faked as MNE channel types.
 
-- Neural trial `i` stays paired with stimulus trial `i`
-- Presentation order (`origTrialPosition`) is separate from file order
-- Neural and stimulus clocks stay separate. A mismatch is a warning, or an error with `--strict-spec`
-- We compare duration in seconds, not raw sample counts
-- Empty trials and one-sample-off features stay as they are (warn). Strict mode rejects them
-- No unit or coordinate conversion unless you asked
-- Unknown fields are reported, not dropped
-- If a subject file has extra modalities, the ones you did not open still survive a round trip
+Neural trial `i` stays paired with stimulus trial `i`. Presentation order (`origTrialPosition`) is separate from file order. Clocks stay separate (warning, or error with `--strict-spec`); we compare duration in seconds, not sample counts. Empty trials and one-sample-off features stay as they are. No unit or coordinate conversion unless you asked. Unknown fields are reported, not dropped.
 
-## One-based indices
-
-MATLAB counts from 1. We keep `stimIdxs` and `origTrialPosition` that way. Python code that wants a filled-in list can use `CNDStimulus.resolved_stimulus_indices` — if the file omitted `stimIdxs`, that helper invents `1..n` and does not pretend the file contained them.
+MATLAB counts from 1. We keep `stimIdxs` and `origTrialPosition` that way. `CNDStimulus.resolved_stimulus_indices` fills in `1..n` if the file omitted `stimIdxs`, and does not pretend the file contained them.
