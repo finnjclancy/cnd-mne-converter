@@ -144,10 +144,11 @@ src/cnd_mne/      the tool (read MATLAB, hold a recording, talk to MNE, write MA
 tests/            unit tests plus a tiny fake CND folder for CI
 docs/results/     JSON from verify-dataset on the public collections
 docs/manifests/   checksums of the zips I downloaded
-docs/             field mapping, questions, design notes
+docs/             field mapping, questions, spec audit
+docs/notes/       leftover working notes. skip unless you want the history
 ```
 
-If you only want to use it, you need `src/` and the install files. The JSON under `docs/` is so someone else can see what was checked.
+If you only want to use it, you need `src/` and the install files. The JSON under `docs/results/` is so someone else can see what was checked.
 
 ## What it will not do quietly
 

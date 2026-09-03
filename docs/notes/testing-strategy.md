@@ -10,7 +10,7 @@ Statement coverage only answers "did this line run". It is not "percent of datas
 
 **Committed fixtures** — small `.mat` and `.fif` files, plus install-testing the wheel and sdist. Mypy on the public API.
 
-**Public datasets** — `verify-dataset` locally, not in git. Parse, validate, build MNE, compare numbers, stimulus views, a Welch PSD, template round trip. `--serialized-round-trip` also hits the real MATLAB writer. JSON lives in [results](results/README.md).
+**Public datasets** — `verify-dataset` locally, not in git. Parse, validate, build MNE, compare numbers, stimulus views, a Welch PSD, template round trip. `--serialized-round-trip` also hits the real MATLAB writer. JSON lives in [results](../results/README.md).
 
 ## Still needs a human
 

@@ -17,4 +17,4 @@ CND file → reader → `CNDRecording` → one MNE `Raw` per trial. The rest of 
 
 The eight empty files still parse. They just have no brain signal. The truncated HDF5 file is broken in the published zip, not in this converter.
 
-What this does **not** settle: real EEG units, `chanlocs` frame, padding, attended/unattended pairing, extra-channel meaning, or whether MNE would take this API. Pick one subject, confirm those, compare against MATLAB. Details in [results](results/README.md) and [questions](questions-for-maintainers.md).
+What this does **not** settle: real EEG units, `chanlocs` frame, padding, attended/unattended pairing, extra-channel meaning, or whether MNE would take this API. Pick one subject, confirm those, compare against MATLAB. Details in [results](../results/README.md) and [questions](../questions-for-maintainers.md).
