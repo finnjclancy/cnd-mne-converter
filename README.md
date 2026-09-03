@@ -6,40 +6,15 @@ A Python package for opening lab brain recordings in Python, analysing them with
 
 This GitHub repo is private. You need collaborator access before `git clone` will work. It is not on PyPI yet.
 
-## Why this exists
+The [Di Liberto lab](https://www.diliberg.net/) stores experiments as **CND**: MATLAB `.mat` files with the brain signal *and* what the person was hearing or doing at the same time. Public CND is on the [CNSP dataset catalogue](https://cnsp-resources.readthedocs.io/en/latest/datasetsPage.html) ([CND 1.0 spec](https://data.cnspworkshop.net/CND_Specifications.pdf)).
 
-The [Di Liberto lab](https://www.diliberg.net/) stores experiments as **CND** (Continuous-event Neural Data): MATLAB `.mat` files with the brain signal *and* what the person was hearing or doing at the same time. Public CND recordings are listed on the [CNSP dataset catalogue](https://cnsp-resources.readthedocs.io/en/latest/datasetsPage.html). The format is the [CND 1.0 spec](https://data.cnspworkshop.net/CND_Specifications.pdf).
+MNE wants one continuous recording (`Raw`) or equal-length snippets (`Epochs`). CND trials can be different lengths, and a speech envelope is not an EEG channel. This package reads the MATLAB, gives you one MNE `Raw` per trial, keeps the leftover CND on `rec.cnd`, and can write it back. It will not invent units, resample, or glue trials together unless you ask.
 
-Python's usual EEG library is **MNE**. MNE is built around one continuous recording (`Raw`) or equal-length snippets (`Epochs`). CND is messier: trials can be different lengths, and the speech envelope is not an EEG channel. If you force CND into one `Raw`, you lose that extra data.
+EEG and the public-catalogue fNIRS layout work. MEG, TRF result files, automatic unit detection, and automatic electrode-coordinate scaling do not.
 
-This package is the bridge. You can plot and filter in MNE, then write the result back to CND. It will not invent units, resample, or glue trials together unless you ask.
+I ran the verifier on every downloadable collection from that catalogue: 1,026 neural files, 17,774 trials. 1,017 pass. Eight BabyRhythm files convert but contain no neural samples. One SparrKULee1 file (`dataSub48.mat`) is truncated in the published archive. The dummy unit used in those checks is only “multiply by one”; it is not a claim that the files are in volts. [Results](docs/results/README.md).
 
-## Words used here
-
-- **EEG** — electrical activity recorded from the scalp.
-- **fNIRS** — a related optical brain measure. The [public catalogue](https://cnsp-resources.readthedocs.io/en/latest/datasetsPage.html) has one of these layouts; this package can load it.
-- **Trial** — one chunk of an experiment. In CND these can be different lengths.
-- **Stimulus file** — `dataStim.mat`: speech envelopes, word onsets, condition labels, and similar tracks, lined up with the trials.
-- **Neural file** — `dataSubN.mat`: the brain signal for subject N.
-- **MNE** — the Python library most people use for EEG. This package talks to it; it is not MNE itself.
-- **MATLAB v5 / v7.3** — two `.mat` file versions. v7.3 is HDF5 underneath. Both are supported.
-
-## What you get
-
-- Read and write CND neural + stimulus files
-- One MNE `Raw` per trial (because trials are often different lengths)
-- The leftover CND fields kept on a companion object, so a round trip does not drop them
-- Optional views of stimulus tracks, sparse events, and extra sensors (mastoids, EOG, …)
-- Optional concatenation, with markers where trials were glued together
-- Command-line `inspect` and `verify-dataset`
-
-EEG and the fNIRS layout in the [public catalogue](https://cnsp-resources.readthedocs.io/en/latest/datasetsPage.html) work. MEG (a different scanner that records magnetic fields), TRF result files (a later analysis, not the raw recording), automatic unit detection, and automatic electrode-coordinate scaling do not.
-
-I ran the verifier on every downloadable collection linked from that catalogue: 1,026 neural files, 17,774 trials. 1,017 pass. Eight BabyRhythm files convert but contain no neural samples. One file in the SparrKULee1 zip (`dataSub48.mat`) is truncated in the published archive. Details: [docs/results](docs/results/README.md).
-
-Those numerical checks can use a dummy unit of 1 when the file has no unit. That only tests whether values were copied or flipped. It does not mean the files are in volts.
-
-## Download and install
+## Install
 
 You need [git](https://git-scm.com/), [uv](https://docs.astral.sh/uv/), and Python 3.10 or newer.
 
@@ -47,19 +22,14 @@ You need [git](https://git-scm.com/), [uv](https://docs.astral.sh/uv/), and Pyth
 git clone https://github.com/finnjclancy/cnd-mne-converter.git
 cd cnd-mne-converter
 uv sync --extra dev
-```
-
-A tiny example CND folder ships in the repo. Check that it opens:
-
-```bash
 uv run cnd-mne inspect tests/data/minimal-cnd --subject 1
 ```
 
 You should see JSON for two trials, four EEG channels, and two stimulus tracks (`Speech Envelope`, `Word Onsets`). `inspect` only reads the MATLAB; it does not need a unit.
 
-## Convert CND to MNE
+## Usage
 
-The bundled example already declares `uV`, so this runs as-is:
+The bundled example already declares `uV`:
 
 ```python
 from cnd_mne import read_cnd_mne
@@ -70,7 +40,7 @@ rec.raws[0].plot()
 
 `rec.raws` is one MNE `Raw` per trial. `rec.cnd` is the original CND information.
 
-Most public CND files do **not** declare a unit. Then you must pass one that the data owner actually confirmed:
+Most public CND files do **not** declare a unit. Then you must pass one the data owner actually confirmed:
 
 ```python
 rec = read_cnd_mne("/path/to/dataCND", subject=1, neural_unit="uV")
@@ -85,9 +55,7 @@ print(available_neural_variables("/path/to/dataSub1.mat"))
 rec = read_cnd_mne("/path/to/dataSub1.mat", neural_variable="eeg", neural_unit="uV")
 ```
 
-The unused type stays on `rec.cnd.additional_variables` and is written back on export. Trials are not joined and stimulus tracks are not resampled unless you ask. Missing electrode locations become names like `EEG001` and there is no montage (no map of where sensors sat on the head).
-
-Optional views (names come from the CND file; these are the ones in the bundled example):
+The unused type stays on `rec.cnd.additional_variables` and is written back on export.
 
 ```python
 envelope = rec.stimulus_raws("Speech Envelope")
@@ -96,9 +64,7 @@ eog = rec.external_raws(unit="uV", channel_types="eog")
 continuous = rec.concatenate()  # opt-in; fake joins are marked
 ```
 
-## Convert MNE back to CND
-
-If you started from CND, write back through that template so envelopes and trial order survive:
+Write back through the original template so envelopes and trial order survive:
 
 ```python
 rec.raws[0].filter(1, 15)
@@ -107,11 +73,7 @@ paths = rec.write_cnd(
 )
 ```
 
-Existing files are left alone unless you pass `overwrite=True`.
-
-MNE cannot invent speech envelopes. For data that never was CND, `from_mne(...)` builds a new recording and tells you what it could not represent.
-
-## Check a whole dataset
+Existing files are left alone unless you pass `overwrite=True`. MNE cannot invent speech envelopes. For data that never was CND, `from_mne(...)` builds a new recording and tells you what it could not represent.
 
 ```bash
 uv run cnd-mne verify-dataset /path/to/dataset \
@@ -119,60 +81,27 @@ uv run cnd-mne verify-dataset /path/to/dataset \
   --output verification.json
 ```
 
-`--serialized-round-trip` also writes and rereads MATLAB (slow, needs disk). `--strict-spec` is for new CND you created, not for messy legacy files. Only pass a unit the owner confirmed.
+`--serialized-round-trip` also writes and rereads MATLAB. `--strict-spec` is for new CND you created, not for messy legacy files. Only pass a unit the owner confirmed.
 
-## How it works
+Notebook: [examples/walkthrough.ipynb](examples/walkthrough.ipynb). Part 1 uses the bundled example. Part 2 downloads the CNSP Lalor Natural Speech sample (~120 MB).
 
-A CND folder is usually two MATLAB files:
-
-- `dataSub1.mat` — the EEG, already cut into trials (chunks that can be different lengths)
-- `dataStim.mat` — what was happening at the same time (speech envelope, word onsets, …), one track per trial
-
-MNE does not speak MATLAB, and it does not like unequal-length trials. So this package sits in the middle:
-
-1. **Read the `.mat` files.** v5 or v7.3, same result.
-2. **Keep a Python copy of the CND** (`CNDRecording`). That is the trials, the stimulus tracks, and the leftover MATLAB fields MNE has no place for.
-3. **Give MNE one `Raw` per trial.** `rec.raws[0]` is trial 1, `rec.raws[1]` is trial 2, and so on. They are not glued together.
-4. **Hang the leftover CND on `rec.cnd`.** When you filter a `Raw` and write back, we start from that copy so the envelope and trial order are still there. A lone MNE `Raw` cannot invent them.
-
-A notebook that does this twice: [examples/walkthrough.ipynb](examples/walkthrough.ipynb). Part 1 uses the tiny bundled example. Part 2 downloads the CNSP Lalor Natural Speech sample (~120 MB) and does the same on real EEG.
-
-The public CND files I actually ran are listed in [docs/results](docs/results/README.md) (1,026 neural files). [docs/dataset-compatibility.md](docs/dataset-compatibility.md) is the short version of what those files look like. Open questions for the lab are in [docs/questions-for-maintainers.md](docs/questions-for-maintainers.md).
-
-## What's in this repo
-
-The converter is small. GitHub looks busy because most files are reports from that catalogue run, not extra features. The EEG itself is not in git. A clone is under a megabyte; `uv sync` then makes a local `.venv`.
-
-```text
-src/cnd_mne/      the tool (read MATLAB, hold a recording, talk to MNE, write MATLAB)
-tests/            unit tests plus a tiny fake CND folder for CI
-docs/results/     JSON from verify-dataset on the public collections
-docs/manifests/   checksums of the zips I downloaded
-docs/             field mapping, questions, spec audit
-docs/notes/       leftover working notes. skip unless you want the history
+```bash
+uv run jupyter notebook examples/walkthrough.ipynb
 ```
 
-If you only want to use it, you need `src/` and the install files. The JSON under `docs/results/` is so someone else can see what was checked.
+## Repo
 
-## What it will not do quietly
+```text
+src/cnd_mne/      read MATLAB, hold a recording, talk to MNE, write MATLAB
+tests/            unit tests plus a tiny fake CND folder for CI
+docs/results/     verify-dataset JSON from the public collections
+docs/manifests/   checksums of the zips I downloaded
+docs/             field mapping
+```
 
-- Resample or truncate to hide a clock mismatch (AliceSpeech is 500 Hz neural / 50 Hz stimulus)
-- Assume volts, millivolts, or µV
-- Assume `chanlocs` are in metres, or that they are even EEGLAB channel structs (EEGLAB is another EEG toolbox)
-- Drop unknown fields just because MNE has nowhere to put them
+The EEG itself is not in git. A clone is under a megabyte.
 
-## More detail
-
-- [CNSP dataset catalogue](https://cnsp-resources.readthedocs.io/en/latest/datasetsPage.html)
-- [Di Liberto lab](https://www.diliberg.net/)
-- [CND 1.0 spec](https://data.cnspworkshop.net/CND_Specifications.pdf)
-- [What the public datasets actually look like](docs/dataset-compatibility.md)
-- [Verification evidence](docs/results/README.md)
-- [Field mapping](docs/field-mapping.md)
-- [Questions that still need the lab / MNE people](docs/questions-for-maintainers.md)
-- [CND 1.0 audit](docs/cnd-spec-audit.md)
-
-## Development
+[Field mapping](docs/field-mapping.md) · [verification results](docs/results/README.md)
 
 ```bash
 uv run pytest --cov=cnd_mne
@@ -180,5 +109,3 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy src/cnd_mne
 ```
-
-Public datasets are not in git. Checksums for the files I used are in `docs/manifests/`. CI uses `tests/data/minimal-cnd`.

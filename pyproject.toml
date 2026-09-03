@@ -44,7 +44,9 @@ Changelog = "https://github.com/finnjclancy/cnd-mne-converter/blob/main/CHANGELO
 [project.optional-dependencies]
 dev = [
   "hypothesis>=6",
+  "ipykernel>=6",
   "mypy>=1.18,<2",
+  "notebook>=7",
   "pytest>=8",
   "pytest-cov>=5",
   "ruff>=0.9",
