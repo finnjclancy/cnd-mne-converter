@@ -1,4 +1,4 @@
-"""Validation for canonical CND objects."""
+"""Checks on CND recordings."""
 
 from __future__ import annotations
 

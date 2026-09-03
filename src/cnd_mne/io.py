@@ -152,12 +152,10 @@ def write_cnd(
     compression: bool = True,
     mat_version: Literal["5", "7.3"] = "5",
 ) -> CNDPaths:
-    """Write a canonical recording as a CND directory.
+    """Write ``dataSubN.mat`` and/or ``dataStim.mat``.
 
-    Writes ``dataSub<subject>.mat`` and/or ``dataStim.mat`` atomically. Existing
-    files are protected unless ``overwrite=True``. ``mat_version="5"`` is the
-    broadly compatible default; ``mat_version="7.3"`` writes HDF5-backed MAT
-    files for recordings that would exceed the v5 size limit.
+    Both files land together, or neither does. Existing files are left alone
+    unless ``overwrite=True``. Use ``mat_version="7.3"`` for big HDF5 files.
     """
     if mat_version not in {"5", "7.3"}:
         raise ValueError("mat_version must be '5' or '7.3'")
@@ -184,7 +182,7 @@ def write_cnd(
     output_dir.mkdir(parents=True, exist_ok=True)
     planned_outputs: list[tuple[Path, dict[str, Any]]] = []
     if recording.neural is not None:
-        if neural_path is None:  # Defensive guard for future path-planning changes.
+        if neural_path is None:
             raise RuntimeError("Neural output path was not planned")
         neural_payload = dict(recording.additional_variables)
         neural_payload[recording.neural.variable_name] = _neural_to_mat(
@@ -197,7 +195,7 @@ def write_cnd(
             )
         )
     if recording.stimulus is not None:
-        if stimulus_path is None:  # Defensive guard for future path-planning changes.
+        if stimulus_path is None:
             raise RuntimeError("Stimulus output path was not planned")
         planned_outputs.append(
             (stimulus_path, {"stim": _stimulus_to_mat(recording.stimulus)})

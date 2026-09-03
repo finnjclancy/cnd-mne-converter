@@ -17,6 +17,7 @@ Nothing is tagged as a real release yet. This is what is on `main`.
 - Named `extChan.<type>` groups, same channel order in v5 and v7.3
 - Dependabot for Python and Actions
 - Jupyter is in the `dev` extra so the walkthrough notebook opens after `uv sync --extra dev`
+- Shorter public-API docstrings
 
 Verifier schema 4 can record an on-disk MATLAB round trip. Old JSON reports were not rewritten.
 

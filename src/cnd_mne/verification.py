@@ -1,4 +1,4 @@
-"""Reproducible end-to-end verification for local CND datasets."""
+"""Check a folder of CND files with ``verify-dataset``."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from .validation import ValidationIssue, validate_cnd
 
 @dataclass(slots=True, frozen=True)
 class SubjectVerification:
-    """Verification evidence for one CND subject file."""
+    """Result for one subject file."""
 
     subject: str
     outcome: str
@@ -58,7 +58,7 @@ class SubjectVerification:
 
 @dataclass(slots=True, frozen=True)
 class DatasetVerification:
-    """Serializable verification report for a complete CND dataset."""
+    """Report for a whole CND dataset."""
 
     schema_version: int
     dataset_name: str
@@ -76,11 +76,9 @@ class DatasetVerification:
 
     @property
     def passed(self) -> bool:
-        """Whether every file avoided a converter or source-read failure.
+        """True if no file failed to open or convert.
 
-        A structurally valid file containing zero neural samples is classified
-        separately as ``empty_neural_data``. It is not a converter failure,
-        although it cannot pass an analysis smoke test.
+        Empty-but-valid files count as a pass here (``empty_neural_data``).
         """
         return all(
             subject.outcome in {"complete_pass", "structural_pass", "empty_neural_data"}
@@ -88,7 +86,7 @@ class DatasetVerification:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Return a JSON-serializable report including aggregate totals."""
+        """JSON report with totals."""
         result = asdict(self)
         warning_counts = Counter(
             {

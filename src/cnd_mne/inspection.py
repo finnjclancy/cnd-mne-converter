@@ -1,4 +1,4 @@
-"""Human- and machine-readable summaries of CND recordings."""
+"""JSON summaries of CND recordings."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from .validation import validate_cnd
 def inspect_cnd(
     recording: CNDRecording, *, strict_spec: bool = False
 ) -> dict[str, Any]:
-    """Return a JSON-serializable structural and validation summary."""
+    """Return a JSON summary of layout and validation."""
     neural = recording.neural
     stimulus = recording.stimulus
     report = validate_cnd(recording, strict_spec=strict_spec)
