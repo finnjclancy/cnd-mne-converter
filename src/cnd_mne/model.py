@@ -1,4 +1,4 @@
-"""Canonical in-memory representation of a CND recording."""
+"""In-memory CND recording."""
 
 from __future__ import annotations
 
@@ -114,7 +114,7 @@ class CNDStimulus:
 
 @dataclass(slots=True)
 class CNDRecording:
-    """Canonical CND object retained alongside any MNE representation."""
+    """Neural trials, stimulus tracks, and leftover MATLAB fields."""
 
     neural: CNDNeural | None = None
     stimulus: CNDStimulus | None = None

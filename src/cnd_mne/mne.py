@@ -1,4 +1,4 @@
-"""Conservative adapters between canonical CND data and MNE-Python."""
+"""CND recordings as MNE objects, and back."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ _UNIT_TO_MOLAR = {
 
 @dataclass(slots=True)
 class MNECNDRecording:
-    """MNE trials paired with the complete source CND representation."""
+    """One MNE ``Raw`` per trial, plus the original CND on ``cnd``."""
 
     raws: tuple[mne.io.RawArray, ...]
     cnd: CNDRecording
@@ -69,12 +69,12 @@ class MNECNDRecording:
 
     @property
     def trial_metadata(self) -> tuple[CNDTrialMetadata, ...]:
-        """Return CND trial metadata aligned with :attr:`raws`."""
+        """Trial metadata in the same order as ``raws``."""
         return self.cnd.trial_metadata
 
     @property
     def trial_slices(self) -> tuple[slice, ...]:
-        """Return sample slices locating trials in :meth:`concatenate` output."""
+        """Sample slices of each trial after :meth:`concatenate`."""
         start = 0
         output: list[slice] = []
         for raw in self.raws:
@@ -84,12 +84,10 @@ class MNECNDRecording:
         return tuple(output)
 
     def concatenate(self, *, add_trial_annotations: bool = True) -> mne.io.BaseRaw:
-        """Return an explicit continuous view with protected trial boundaries.
+        """Glue trials into one ``Raw``. Joins are fake; MNE marks them.
 
-        MNE adds ``BAD boundary`` and ``EDGE boundary`` annotations at every
-        artificial join. The source per-trial objects are copied and remain
-        unchanged. Optional ``CND_TRIAL/<one-based-index>`` annotations make
-        the original trial starts directly visible in MNE.
+        Copies the per-trial objects. Optional ``CND_TRIAL/N`` annotations
+        mark each trial start.
         """
         if not self.raws:
             raise CNDValidationError("Cannot concatenate an empty CND recording")
@@ -111,12 +109,9 @@ class MNECNDRecording:
         return combined
 
     def stimulus_raws(self, feature: str | int) -> tuple[mne.io.RawArray, ...]:
-        """Represent one CND stimulus feature set as MNE ``misc`` channels.
+        """One stimulus feature as ``misc`` channels. Same rate and values.
 
-        The stimulus sampling rate and numerical values are preserved. No
-        resampling, alignment shift, or physical-unit claim is made. A
-        multivariate feature such as a spectrogram becomes one ``misc``
-        channel per feature dimension.
+        A spectrogram becomes one channel per bin. No resampling or unit claim.
         """
         stimulus = self.stimulus
         if stimulus is None:
@@ -154,13 +149,10 @@ class MNECNDRecording:
         threshold: float = 0.0,
         include_values: bool = False,
     ) -> tuple[mne.Annotations, ...]:
-        """Create opt-in MNE annotations from a sparse stimulus feature.
+        """Turn a sparse 1-D feature (word onsets, etc.) into annotations.
 
-        Every sample whose absolute value exceeds ``threshold`` becomes a
-        zero-duration annotation at the stimulus clock time. This helper does
-        not claim that a feature is event-like; callers must select an
-        appropriate sparse feature such as a word-onset vector explicitly.
-        Multidimensional continuous features are rejected.
+        Samples above ``threshold`` become zero-length marks on the stimulus
+        clock. Continuous / multi-D features are rejected.
         """
         stimulus = self.stimulus
         if stimulus is None:
@@ -202,12 +194,9 @@ class MNECNDRecording:
         channel_types: str | Sequence[str] = "misc",
         channel_names: Sequence[str] | None = None,
     ) -> tuple[mne.io.RawArray, ...]:
-        """Return explicit MNE views of CND external channels.
+        """Extra CND channels (EOG, mastoids, …) as their own ``Raw`` objects.
 
-        External channels are kept separate because public CND files do not
-        consistently declare their type, unit, or length relative to EEG.
-        The caller must provide the physical ``unit`` and may explicitly map
-        channel types (for example ``"eog"`` or ``("eeg", "eeg")``).
+        Pass ``unit``. Optionally pass ``channel_types`` such as ``"eog"``.
         """
         neural = self.cnd.neural
         if neural is None or neural.external_trials is None:
@@ -304,7 +293,7 @@ def read_cnd_mne(
     montage: MontagePolicy = "none",
     coordinate_scale_to_meters: float | None = None,
 ) -> MNECNDRecording:
-    """Read CND files and create their conservative MNE representation."""
+    """Read CND MATLAB files into one MNE ``Raw`` per trial."""
     from .io import read_cnd
 
     recording = read_cnd(
@@ -334,7 +323,7 @@ def to_mne(
     Parameters
     ----------
     recording
-        Canonical CND data.
+        CND data.
     neural_unit
         Physical unit of the numerical CND EEG values. Required unless the CND
         file declares ``dataUnit``, ``unit``, or ``units``. MNE stores EEG in
@@ -406,14 +395,11 @@ def from_mne(
     template: CNDRecording | None = None,
     on_unsupported_metadata: UnsupportedMetadataPolicy = "warn",
 ) -> CNDRecording:
-    """Create canonical CND data from one or more MNE raw recordings.
+    """Build CND from one or more MNE ``Raw`` objects.
 
-    MNE stores EEG in volts. ``output_unit`` controls the numerical values
-    written to CND and is recorded in the extension field ``dataUnit``.
-    Arbitrary stimulus features cannot be inferred from MNE and must be passed
-    explicitly when required. Pass ``template`` (or use
-    :meth:`MNECNDRecording.to_cnd`) for a controlled round trip that preserves
-    CND-only metadata and stimulus features.
+    MNE stores EEG in volts. ``output_unit`` is what gets written to CND.
+    Pass stimulus data yourself; MNE cannot invent envelopes. Use ``template``
+    (or :meth:`MNECNDRecording.to_cnd`) to keep leftover CND fields.
     """
     raw_trials = (raws,) if isinstance(raws, mne.io.BaseRaw) else tuple(raws)
     if not raw_trials:
@@ -486,7 +472,7 @@ def from_mne(
         )
 
     if template_neural is not None:
-        if template is None:  # Defensive guard for future template handling changes.
+        if template is None:
             raise CNDValidationError("Internal template state is inconsistent")
         neural = replace(
             template_neural,
@@ -527,7 +513,7 @@ def from_mne(
 
 
 def _channel_spec(neural: CNDNeural) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """Return deterministic MNE names and channel types for a CND signal."""
+    """Channel names and MNE types for this CND signal."""
     data_type = neural.data_type.strip().lower()
     if data_type == "eeg":
         eeg_names = neural.channel_names or tuple(

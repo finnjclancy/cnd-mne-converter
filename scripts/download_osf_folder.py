@@ -1,8 +1,7 @@
-"""Download and checksum a public OSF folder recursively.
+"""Download a public OSF folder and write a checksum manifest.
 
-This utility is intentionally separate from the converter. It creates a JSON
-manifest suitable for recording the exact public files used in integration
-testing and resumes interrupted downloads through HTTP range requests.
+Resumes interrupted downloads with HTTP range requests. Not part of the
+converter package.
 """
 
 from __future__ import annotations
