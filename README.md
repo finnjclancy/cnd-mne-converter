@@ -8,7 +8,7 @@ This GitHub repo is private. You need collaborator access before `git clone` wil
 
 ## Why this exists
 
-The Di Liberto lab stores experiments as **CND** (Continuous-event Neural Data): MATLAB `.mat` files with the brain signal *and* what the person was hearing or doing at the same time.
+The [Di Liberto lab](https://www.diliberg.net/) stores experiments as **CND** (Continuous-event Neural Data): MATLAB `.mat` files with the brain signal *and* what the person was hearing or doing at the same time. Public CND recordings are listed on the [CNSP dataset catalogue](https://cnsp-resources.readthedocs.io/en/latest/datasetsPage.html). The format is the [CND 1.0 spec](https://data.cnspworkshop.net/CND_Specifications.pdf).
 
 Python's usual EEG library is **MNE**. MNE is built around one continuous recording (`Raw`) or equal-length snippets (`Epochs`). CND is messier: trials can be different lengths, and the speech envelope is not an EEG channel. If you force CND into one `Raw`, you lose that extra data.
 
@@ -17,7 +17,7 @@ This package is the bridge. You can plot and filter in MNE, then write the resul
 ## Words used here
 
 - **EEG** — electrical activity recorded from the scalp.
-- **fNIRS** — a related optical brain measure. The public CND catalogue has one of these layouts; this package can load it.
+- **fNIRS** — a related optical brain measure. The [public catalogue](https://cnsp-resources.readthedocs.io/en/latest/datasetsPage.html) has one of these layouts; this package can load it.
 - **Trial** — one chunk of an experiment. In CND these can be different lengths.
 - **Stimulus file** — `dataStim.mat`: speech envelopes, word onsets, condition labels, and similar tracks, lined up with the trials.
 - **Neural file** — `dataSubN.mat`: the brain signal for subject N.
@@ -33,9 +33,9 @@ This package is the bridge. You can plot and filter in MNE, then write the resul
 - Optional concatenation, with markers where trials were glued together
 - Command-line `inspect` and `verify-dataset`
 
-EEG and the fNIRS layout in the public CND catalogue work. MEG (a different scanner that records magnetic fields), TRF result files (a later analysis, not the raw recording), automatic unit detection, and automatic electrode-coordinate scaling do not.
+EEG and the fNIRS layout in the [public catalogue](https://cnsp-resources.readthedocs.io/en/latest/datasetsPage.html) work. MEG (a different scanner that records magnetic fields), TRF result files (a later analysis, not the raw recording), automatic unit detection, and automatic electrode-coordinate scaling do not.
 
-I ran the verifier on every downloadable collection linked from the public catalogue: 1,026 neural files, 17,774 trials. 1,017 pass. Eight BabyRhythm files convert but contain no neural samples. One file in the SparrKULee1 zip (`dataSub48.mat`) is truncated in the published archive. Details: [docs/results](docs/results/README.md).
+I ran the verifier on every downloadable collection linked from that catalogue: 1,026 neural files, 17,774 trials. 1,017 pass. Eight BabyRhythm files convert but contain no neural samples. One file in the SparrKULee1 zip (`dataSub48.mat`) is truncated in the published archive. Details: [docs/results](docs/results/README.md).
 
 Those numerical checks can use a dummy unit of 1 when the file has no unit. That only tests whether values were copied or flipped. It does not mean the files are in volts.
 
@@ -135,6 +135,20 @@ Writing goes the other way. If you started from CND, that original file is the t
 
 The public CND files I actually ran are listed in [docs/results](docs/results/README.md) (1,026 neural files). [docs/dataset-compatibility.md](docs/dataset-compatibility.md) is the short version of what those files look like. Open questions for the lab are in [docs/questions-for-maintainers.md](docs/questions-for-maintainers.md).
 
+## What's in this repo
+
+The converter is small. GitHub looks busy because most files are reports from that catalogue run, not extra features. The EEG itself is not in git. A clone is under a megabyte; `uv sync` then makes a local `.venv`.
+
+```text
+src/cnd_mne/      the tool (read MATLAB, hold a recording, talk to MNE, write MATLAB)
+tests/            unit tests plus a tiny fake CND folder for CI
+docs/results/     JSON from verify-dataset on the public collections
+docs/manifests/   checksums of the zips I downloaded
+docs/             field mapping, questions, design notes
+```
+
+If you only want to use it, you need `src/` and the install files. The JSON under `docs/` is so someone else can see what was checked.
+
 ## What it will not do quietly
 
 - Resample or truncate to hide a clock mismatch (AliceSpeech is 500 Hz neural / 50 Hz stimulus)
@@ -144,6 +158,9 @@ The public CND files I actually ran are listed in [docs/results](docs/results/RE
 
 ## More detail
 
+- [CNSP dataset catalogue](https://cnsp-resources.readthedocs.io/en/latest/datasetsPage.html)
+- [Di Liberto lab](https://www.diliberg.net/)
+- [CND 1.0 spec](https://data.cnspworkshop.net/CND_Specifications.pdf)
 - [What the public datasets actually look like](docs/dataset-compatibility.md)
 - [Verification evidence](docs/results/README.md)
 - [Field mapping](docs/field-mapping.md)
