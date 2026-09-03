@@ -1,42 +1,29 @@
-# Decisions needed from CND and MNE maintainers
+# Questions for the lab / MNE people
 
-The converter deliberately avoids defaults for the questions below. Answers
-should be recorded in an architecture decision before behavior changes.
+These are things the converter will not guess. If we change behaviour, it should be because someone answered one of these, not because a default felt convenient.
 
-## CND scientific semantics
+## About the CND files
 
-1. What physical unit is intended for `eeg.data` in each public collection?
-2. Should a future CND revision require `dataUnit` for neural and external
-   channel groups?
-3. What units, axes, origin, and frame apply to `chanlocs`?
-4. What does `paddingStartSample` measure, and does padding remain part of the
-   analysis interval?
-5. Are empty trials rejected trials that must retain their ordinal position?
-6. How should multiple external-channel groups declare names, types, units,
-   sampling frequencies, and references?
-7. How should attended/unattended alternatives and other parallel stimulus
-   representations be paired?
-8. Which sparse features are events, and which must remain continuous model
-   regressors?
+1. What physical unit is `eeg.data` in, for each public collection (or at least for one reference dataset)?
+2. Should a later CND spec require `dataUnit` on neural and extra-channel groups?
+3. `chanlocs`: units, axes, origin, frame? Metres? EEGLAB `(-Y, X, Z)`?
+4. What is `paddingStartSample`? Is that padding part of the analysis window?
+5. Empty trials — rejected trials that must keep their slot, or junk?
+6. Extra channels (`extChan`): names, types (ref / EOG / audio / trigger), units, sampling rate, what to do when they are a different length from the EEG.
+7. Attended vs unattended (AAD and similar): two files, or one paired stimulus object?
+8. Which sparse features are events, and which are continuous TRF regressors?
 
-## Proposed MNE representation
+## About the MNE API
 
-1. Is a specialized object containing one `Raw` per variable-length trial plus
-   a lossless CND companion model acceptable?
-2. Should MNE expose `read_cnd`, or should this remain a separate package?
-3. Should the primary API return separate trials or a boundary-annotated
-   concatenated view?
-4. Should continuous stimulus features remain companion arrays, be represented
-   as `misc` channels, or use a new naturalistic-experiment abstraction?
-5. Which CND fields should map to MNE annotations, metadata, or channel types?
-6. Is export within scope for MNE, given that arbitrary `Raw` objects do not
-   contain the stimulus and experiment information required by CND?
+1. Is "one `Raw` per variable-length trial + a companion object with the rest of the CND" acceptable?
+2. Should MNE grow `read_cnd`, or should this stay a separate package?
+3. Default return: separate trials, or a concatenated view with boundary annotations?
+4. Continuous stimulus features: companion arrays, `misc` channels, or something new?
+5. Which CND fields should become annotations vs info vs channel types?
+6. Is export in scope for MNE? A random `Raw` does not contain envelopes or trial order.
 
-## Scope decisions
+## Scope
 
-1. Should MEG and other modalities wait for real CND examples and maintainers
-   with modality expertise?
-2. Should resampling and alignment be implemented as explicit derived-data
-   operations with provenance, or remain outside the converter?
-3. Should TRF result interchange be a separate proposal after recording
-   interchange is stable?
+1. Wait for real MEG CND examples before pretending to support MEG?
+2. Resampling / alignment: explicit derived-data step with provenance, or out of this package?
+3. TRF-result files: later, after recording interchange is stable?

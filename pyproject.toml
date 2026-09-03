@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "cnd-mne-converter"
 version = "0.1.0.dev0"
-description = "Bidirectional conversion between CND datasets and MNE-Python objects"
+description = "Convert CND MATLAB files to MNE-Python and back"
 readme = "README.md"
 authors = [{ name = "Finn Clancy" }]
 license = "BSD-3-Clause"

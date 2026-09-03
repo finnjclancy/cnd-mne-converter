@@ -1,10 +1,6 @@
 # Contributing
 
-Issues and focused pull requests are welcome. Scientific mapping changes must
-state their assumptions and must not silently resample, truncate, pad, scale,
-or reinterpret data.
-
-## Development setup
+Issues and small PRs are welcome. If you change how neural data is interpreted, say so in the PR. Do not silently resample, truncate, pad, scale, or guess units.
 
 ```bash
 git clone https://github.com/finnjclancy/cnd-mne-converter.git
@@ -14,14 +10,8 @@ uv run pytest --cov=cnd_mne
 uv run ruff check .
 uv run ruff format --check .
 uv run mypy src/cnd_mne
-uv build
 ```
 
-Tests should use small synthetic or openly redistributable fixtures. Do not
-commit participant data unless its licence and consent terms explicitly allow
-redistribution. New format mappings should include round-trip tests, malformed
-input tests, and documentation of any information that MNE or CND cannot
-represent.
+Tests should use small synthetic or openly redistributable fixtures. Do not commit participant data unless the licence actually allows it. New mappings need a round trip, a malformed-input case, and a note about anything MNE or CND cannot represent.
 
-Before proposing a major MNE-facing API change, open a design issue so the CND
-and MNE maintainers can agree on the representation.
+If you want to change the MNE-facing API in a big way, open an issue first.

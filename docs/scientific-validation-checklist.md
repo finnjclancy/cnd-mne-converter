@@ -1,9 +1,6 @@
-# Scientific validation checklist
+# Scientific checks
 
-Structural round trips are necessary but do not establish that an imported
-recording is scientifically scaled or interpreted correctly. A dataset is
-ready for scientific claims only after the applicable checks below are signed
-off by someone familiar with the experiment.
+A round trip passing does not mean the recording is correctly scaled. Someone who knows the experiment still has to sign the items below.
 
 ## Source provenance
 
