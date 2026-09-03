@@ -9,7 +9,7 @@ The parser/writer is in good enough shape for review. What is left is not "handl
 - EEG + the public-catalogue fNIRS layout, with explicit units
 - Stimulus views, optional event annotations, optional concatenation
 - Write back through the original CND template
-- `verify-dataset` on the public catalogue (see [results](results/README.md))
+- `verify-dataset` on the public catalogue (see [results](../results/README.md))
 - CI on Linux / macOS / Windows, Python 3.10–3.13
 
 As of 26 August 2026: 116 tests, 95% statement coverage, ruff + mypy clean. NAPlib and Eelbrain can load the committed fixture (Eelbrain needs two layouts stripped; its reader is narrower).
