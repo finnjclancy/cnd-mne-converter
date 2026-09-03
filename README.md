@@ -121,6 +121,20 @@ uv run cnd-mne verify-dataset /path/to/dataset \
 
 `--serialized-round-trip` also writes and rereads MATLAB (slow, needs disk). `--strict-spec` is for new CND you created, not for messy legacy files. Only pass a unit the owner confirmed.
 
+## How it works
+
+```text
+CND .mat files
+    → MATLAB reader (v5 or v7.3)
+    → CNDRecording (trials, stimulus tracks, extra fields)
+    → MNE adapter
+    → one Raw per trial, plus rec.cnd with everything else
+```
+
+Writing goes the other way. If you started from CND, that original file is the template, so envelopes and trial order come back. A bare MNE `Raw` cannot invent those.
+
+The public CND files I actually ran are listed in [docs/results](docs/results/README.md) (1,026 neural files). [docs/dataset-compatibility.md](docs/dataset-compatibility.md) is the short version of what those files look like. Open questions for the lab are in [docs/questions-for-maintainers.md](docs/questions-for-maintainers.md).
+
 ## What it will not do quietly
 
 - Resample or truncate to hide a clock mismatch (AliceSpeech is 500 Hz neural / 50 Hz stimulus)
