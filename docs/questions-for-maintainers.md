@@ -1,10 +1,10 @@
 # Questions for the lab / MNE people
 
-These are things the converter will not guess. If we change behaviour, it should be because someone answered one of these, not because a default felt convenient.
+Please do not let the converter guess these. If behaviour changes, it should be because someone answered one of them.
 
 ## About the CND files
 
-1. What physical unit is `eeg.data` in, for each public collection (or at least for one reference dataset)?
+1. What physical unit is `eeg.data` in, for each public collection (or at least one reference dataset)?
 2. Should a later CND spec require `dataUnit` on neural and extra-channel groups?
 3. `chanlocs`: units, axes, origin, frame? Metres? EEGLAB `(-Y, X, Z)`?
 4. What is `paddingStartSample`? Is that padding part of the analysis window?
@@ -25,5 +25,5 @@ These are things the converter will not guess. If we change behaviour, it should
 ## Scope
 
 1. Wait for real MEG CND examples before pretending to support MEG?
-2. Resampling / alignment: explicit derived-data step with provenance, or out of this package?
+2. Resampling / alignment: an explicit derived-data step, or out of this package?
 3. TRF-result files: later, after recording interchange is stable?

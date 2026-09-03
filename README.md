@@ -123,15 +123,19 @@ uv run cnd-mne verify-dataset /path/to/dataset \
 
 ## How it works
 
-```text
-CND .mat files
-    → MATLAB reader (v5 or v7.3)
-    → CNDRecording (trials, stimulus tracks, extra fields)
-    → MNE adapter
-    → one Raw per trial, plus rec.cnd with everything else
-```
+A CND folder is usually two MATLAB files:
 
-Writing goes the other way. If you started from CND, that original file is the template, so envelopes and trial order come back. A bare MNE `Raw` cannot invent those.
+- `dataSub1.mat` — the EEG, already cut into trials (chunks that can be different lengths)
+- `dataStim.mat` — what was happening at the same time (speech envelope, word onsets, …), one track per trial
+
+MNE does not speak MATLAB, and it does not like unequal-length trials. So this package sits in the middle:
+
+1. **Read the `.mat` files.** v5 or v7.3, same result.
+2. **Keep a Python copy of the CND** (`CNDRecording`). That is the trials, the stimulus tracks, and the leftover MATLAB fields MNE has no place for.
+3. **Give MNE one `Raw` per trial.** `rec.raws[0]` is trial 1, `rec.raws[1]` is trial 2, and so on. They are not glued together.
+4. **Hang the leftover CND on `rec.cnd`.** When you filter a `Raw` and write back, we start from that copy so the envelope and trial order are still there. A lone MNE `Raw` cannot invent them.
+
+A short notebook that does this on the bundled example: [examples/walkthrough.ipynb](examples/walkthrough.ipynb).
 
 The public CND files I actually ran are listed in [docs/results](docs/results/README.md) (1,026 neural files). [docs/dataset-compatibility.md](docs/dataset-compatibility.md) is the short version of what those files look like. Open questions for the lab are in [docs/questions-for-maintainers.md](docs/questions-for-maintainers.md).
 

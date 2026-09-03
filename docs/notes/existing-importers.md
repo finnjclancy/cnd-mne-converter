@@ -1,65 +1,39 @@
 # Other Python CND loaders
 
-Looked at the public source and ran them on 26 August 2026.
+I looked at the public source and ran them on 26 August 2026.
 
 ## Eelbrain
 
-[`eelbrain.load.cnd`](https://github.com/Eelbrain/Eelbrain/blob/main/eelbrain/_io/cnd.py)
-loads one neural or stimulus MATLAB file into Eelbrain `Dataset` and `NDVar`
-objects. It constructs explicit time and sensor dimensions and supports external
-channels and condition labels.
+[`eelbrain.load.cnd`](https://github.com/Eelbrain/Eelbrain/blob/main/eelbrain/_io/cnd.py) loads one neural or stimulus MATLAB file into Eelbrain `Dataset` / `NDVar` objects. Time and sensor dimensions are explicit. Extra channels and condition labels are supported.
 
-The current neural path indexes `chanlocs` directly, so a legacy dataset such as
-AliceSpeech, which omits channel locations, is not covered by that code path.
-It also recognizes only the top-level variable `eeg` and expects external
-channels at `extChan.data`. Eelbrain 0.41.2 loaded the two EEG trials from a
-compatible form of the committed fixture. Its reader rejected the fixture's
-valid EEGLAB struct-array `chanlocs` representation and squeezed single-channel
-external arrays; these are reference-loader limitations, not failures of the
-CND file. The function is documented as experimental. No CND writer is exposed.
+It indexes `chanlocs` directly, so AliceSpeech (no channel locations) does not go down that path. It only looks at a top-level `eeg` variable, and extra channels have to live at `extChan.data`.
+
+Eelbrain 0.41.2 loaded the two EEG trials from a compatible form of our committed fixture. It rejected the fixture's valid EEGLAB struct-array `chanlocs` and squeezed single-channel extra arrays. Those are limits of that reader, not of the CND file. The function is documented as experimental. No writer.
 
 ## NAPlib
 
-[`naplib.io.load_cnd`](https://github.com/naplab/naplib-python/blob/main/naplib/io/load_cnd.py)
-loads CND into a trial-oriented `naplib.Data` object. It can infer a matching
-subject-specific or shared stimulus file, tolerates missing channel locations,
-preserves several additional fields, and combines neural and stimulus trials.
-Its source states that it was adapted from Eelbrain's reader.
+[`naplib.io.load_cnd`](https://github.com/naplab/naplib-python/blob/main/naplib/io/load_cnd.py) loads CND into a trial-oriented `naplib.Data` object. It can find a matching stim file (shared or per-subject), tolerate missing channel locations, keep some extra fields, and combine neural + stimulus trials. The source says it was adapted from Eelbrain.
 
-NAPlib 2.6.0 was also run against the committed fixture with truncation
-disabled. It loaded both EEG trials with the expected `(100, 4)` and `(125, 4)`
-shapes. Its neural path likewise recognizes only the top-level variable `eeg`
-and assumes external samples live at `extChan.data`.
+NAPlib 2.6.0, with truncation off, loaded both EEG trials from our fixture with shapes `(100, 4)` and `(125, 4)`. Same limits: only top-level `eeg`, extra samples at `extChan.data`.
 
-The default `truncate_lengths=True` path finds the minimum raw sample count
-across EEG and all stimulus features. That is not generally safe for CND:
-AliceSpeech stores EEG at 500 Hz and features at 50 Hz. Equal durations therefore
-have approximately ten times as many neural samples, and sample-count truncation
-would remove most of the EEG trial. No CND-specific writer is exposed.
+Default `truncate_lengths=True` takes the shortest raw sample count across EEG and every stimulus feature. That is unsafe for CND. AliceSpeech is 500 Hz EEG / 50 Hz features, so equal duration means ~10× as many neural samples. Truncating by sample count would throw away most of the EEG. No writer.
 
-## Shared lessons
+## What I took from that
 
-- Both projects demonstrate the core MATLAB structure parsing.
-- Both preserve CND's `time x channels` arrays in their own trial-oriented data
-  types rather than producing MNE `Raw` objects.
-- Both use the EEGLAB-style axis mapping `(-Y, X, Z)` for sensor positions.
-- Neither resolves missing physical units or coordinate units.
-- Neither provides the complete bidirectional CND <-> MNE round trip targeted by
-  this project.
-- Neither implements the CND 1.0 provision for one variable per recording
-  modality or the specified `extChan.<type>` field-per-group layout.
+- Both parse the core MATLAB layout
+- Both keep `time × channels` in their own types, not MNE `Raw`
+- Both use EEGLAB `(-Y, X, Z)` for sensors
+- Neither solves units or coordinate units
+- Neither does a full CND ↔ MNE round trip
+- Neither does "one variable per modality" or named `extChan.<type>` groups
 
-## Decisions adopted here
+## What this package does instead
 
-- Keep the useful trial-oriented canonical representation.
-- Infer shared and subject-specific stimulus paths, including a sibling
-  `stimCND/` directory.
-- Compare alignment in seconds and never truncate by sample count implicitly.
-- Allow missing channel metadata while emitting an explicit warning.
-- Require physical unit and coordinate choices at the MNE adapter boundary.
-- Preserve a companion CND model so reverse export remains possible.
-- Allow callers to list and select modality variables; preserve every
-  unselected top-level variable during template-backed export.
-- Parse and reconstruct both the legacy `extChan.data` convention and the CND
-  1.0 named-field convention, with deterministic group ordering across MATLAB
-  encodings.
+- Keep a trial-oriented in-memory model
+- Find shared and subject-specific stim paths, including a sibling `stimCND/` folder
+- Compare alignment in seconds, never truncate by sample count unless asked
+- Missing channel metadata is a warning, not a crash
+- Units and coordinates are required at the MNE boundary
+- Keep `rec.cnd` so write-back is possible
+- List/select modality variables; keep the unused ones on export
+- Parse both legacy `extChan.data` and CND 1.0 named groups, same order in v5 and v7.3

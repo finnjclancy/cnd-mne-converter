@@ -1,37 +1,17 @@
-# ADR 0003: Require explicit units, coordinate scaling, and resampling
+# Why units, coordinates, and resampling are never guessed
 
-- Status: Accepted
-- Date: 2026-08-23
+Accepted 23 August 2026.
 
-## Context
+MNE wants EEG in volts and sensors in metres. The public CND files do not say. Some (AliceSpeech) also use different neural and stimulus rates, even though CND 1.0 wants them equal.
 
-MNE stores EEG values in volts and sensor coordinates in metres. The inspected
-legacy CND datasets do not declare EEG units or coordinate units consistently.
-Some datasets also store neural and stimulus signals at different sampling
-frequencies.
+A wrong unit can be off by a million. A wrong axis can make a pretty but wrong map. Truncating by sample count is wrong when the clocks differ.
 
-CND 1.0 specifies equal neural and stimulus sampling rates. AliceSpeech is a
-published legacy exception (500 Hz versus 50 Hz), so compatibility and
-conformance must be distinguishable concepts.
+So:
 
-A wrong unit conversion can change EEG amplitudes by a factor of one million.
-A wrong coordinate scale or axis mapping can produce plausible-looking but
-incorrect topographies. Truncating arrays by sample count is invalid when their
-sampling frequencies differ.
+- numbers stay as stored until you pass a unit
+- no montage unless you ask; EEGLAB axes need an explicit scale to metres
+- compare duration in seconds
+- rate mismatch: warning normally, error with `--strict-spec`
+- never resample, truncate, or pad unless you asked
 
-## Decision
-
-- CND numerical values stay unchanged in the canonical model.
-- CND-to-MNE conversion requires a declared or caller-supplied EEG unit.
-- MNE montage creation is disabled by default. The initial EEGLAB-compatible
-  axis transform requires an explicit multiplier to metres.
-- Neural and stimulus durations are compared in seconds.
-- Sampling-rate inequality is a warning in tolerant legacy mode and an error in
-  strict CND 1.0 mode.
-- The prototype never automatically resamples, truncates, or pads signals.
-
-## Consequences
-
-The initial API is more cautious and requires user input for legacy datasets.
-It prevents silent scientific transformations and makes unresolved metadata
-visible to the validator and documentation.
+Legacy files therefore need a couple of arguments. That is the point.
