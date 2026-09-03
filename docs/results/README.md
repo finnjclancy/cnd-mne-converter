@@ -1,8 +1,8 @@
 # Verification results
 
-`verify-dataset` was run on 24–25 August 2026, one subject at a time. Older JSON reports are schema 2; the current verifier is schema 4 (optional on-disk MATLAB round trip). The old files were not rewritten to pretend those extra checks ran.
+`verify-dataset` was run on 24–25 August 2026, one subject at a time. Older JSON reports are schema 2. The current verifier is schema 4 (optional on-disk MATLAB round trip). The old files were not rewritten to pretend those extra checks ran.
 
-The catalogue summarizer labels each record `complete_pass`, `empty_neural_data`, or a failure type.
+Each record is labelled `complete_pass`, `empty_neural_data`, or a failure type.
 
 | Dataset | Subjects | Trials | Result | Machine-readable evidence |
 | --- | ---: | ---: | --- | --- |
@@ -25,10 +25,7 @@ The catalogue summarizer labels each record `complete_pass`, `empty_neural_data`
 | DiliBach | 20 | 600 | Pass after empty optional-metadata handling | [JSON](dilibach.json) |
 | SparrKULee1 | 78 files | 372 parsed | 77 pass; one truncated upstream HDF5 file | [JSON](sparr-kulee1.json) |
 
-The machine-generated [catalogue summary](catalog-summary.json) aggregates all
-18 reports: 1,026 neural CND files, 1,017 complete passes, 8 all-empty files,
-1 upstream source-read failure, 17,774 parsed trials, 204,719,481 neural time samples, and
-11,293,937,597 scalar neural values.
+The generated [catalogue summary](catalog-summary.json) adds those 18 reports together: 1,026 neural CND files, 1,017 complete passes, 8 all-empty files, 1 upstream source-read failure, 17,774 parsed trials, 204,719,481 neural time samples, and 11,293,937,597 scalar neural values.
 
 SparrKULee2 has 57 matching filenames, but `dataSub33.mat` is 0 bytes in the
 authoritative ZIP; the report records and skips that placeholder, leaving the
