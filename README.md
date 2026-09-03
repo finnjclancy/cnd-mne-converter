@@ -1,156 +1,117 @@
-# CND-MNE Converter
+# CND-MNE
 
-Experimental bidirectional conversion between Continuous-event Neural Data
-(CND) MATLAB structures and MNE-Python objects.
+A Python package for opening lab brain recordings in Python, analysing them with MNE, and saving them back to the lab's MATLAB format without losing the extra experiment information.
 
 [![CI](https://github.com/finnjclancy/cnd-mne-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/finnjclancy/cnd-mne-converter/actions/workflows/ci.yml)
 
-> [!WARNING]
-> This is an early research prototype, not yet a scientifically validated
-> converter. In particular, the physical units and coordinate units are absent
-> from several public CND datasets and must not be guessed silently.
+This GitHub repo is private. You need collaborator access before `git clone` will work. It is not on PyPI yet.
 
-## Current status
+## Why this exists
 
-The tested research milestone provides:
+The Di Liberto lab stores experiments as **CND** (Continuous-event Neural Data): MATLAB `.mat` files with the brain signal *and* what the person was hearing or doing at the same time.
 
-- MATLAB v5 and v7.3/HDF5 CND neural and stimulus readers and transactional
-  writers;
-- a canonical model that preserves variable-length trials, continuous stimulus
-  features, conditions, external channels, and unknown fields;
-- explicit selection and lossless preservation of multiple recording-modality
-  variables in one subject file;
-- tolerant legacy validation and strict CND 1.0 conformance validation;
-- one MNE `RawArray` per CND neural trial;
-- MNE `misc` views of continuous stimulus features;
-- opt-in MNE annotations for explicitly selected sparse event features;
-- separate, explicitly typed and scaled MNE views of external channels;
-- explicit concatenation with protected trial-boundary annotations;
-- explicit conversion of declared EEG units to MNE's required volts;
-- fNIRS HbO/HbR conversion to MNE molar channels, with HbT retained as
-  `misc` because MNE has no HbT channel type;
-- template-backed MNE-to-CND export and an atomic MATLAB writer;
-- `inspect` and full-dataset `verify-dataset` commands; and
-- synthetic, committed MATLAB, MNE FIF, CLI, and round-trip tests.
+Python's usual EEG library is **MNE**. MNE is built around one continuous recording (`Raw`) or equal-length snippets (`Epochs`). CND is messier: trials can be different lengths, and the speech envelope is not an EEG channel. If you force CND into one `Raw`, you lose that extra data.
 
-The expanded public validation matrix covers every downloadable CND collection
-linked by the official catalogue: 1,026 neural CND files across 18 report
-groups. A total of 1,017 files pass structural, numerical, MNE PSD,
-stimulus-view, and controlled round-trip checks over 17,774 parsed trials and
-11.29 billion scalar neural values. Eight additional BabyRhythm files convert
-and round-trip but contain no neural samples; they are classified as
-`empty_neural_data`, not converter failures. One truncated HDF5 file in the
-authoritative SparrKULee1 ZIP is the sole source-read failure. See the
-machine-generated
-[catalogue summary](docs/results/catalog-summary.json) and
-[verification notes](docs/results/README.md) for exact claims and limitations.
+This package is the bridge. You can plot and filter in MNE, then write the result back to CND. It will not invent units, resample, or glue trials together unless you ask.
 
-The MNE adapter currently supports EEG and the observed CND fNIRS layout. The
-MATLAB layer can select any modality structure with `data` and `fs`, retaining
-all unselected modalities for a lossless file round trip.
-Automatic unit discovery, automatic coordinate scaling, implicit external-
-channel typing, MEG, TRF results, lazy multi-gigabyte loading, and arbitrary
-MNE modalities remain future work.
+## Words used here
 
-## Why a companion object is necessary
+- **EEG** — electrical activity recorded from the scalp.
+- **fNIRS** — a related optical brain measure. The public CND catalogue has one of these layouts; this package can load it.
+- **Trial** — one chunk of an experiment. In CND these can be different lengths.
+- **Stimulus file** — `dataStim.mat`: speech envelopes, word onsets, condition labels, and similar tracks, lined up with the trials.
+- **Neural file** — `dataSubN.mat`: the brain signal for subject N.
+- **MNE** — the Python library most people use for EEG. This package talks to it; it is not MNE itself.
+- **MATLAB v5 / v7.3** — two `.mat` file versions. v7.3 is HDF5 underneath. Both are supported.
 
-CND stores more than an EEG array. It can contain separate variable-length
-trials, stimulus envelopes, word or note onsets, multidimensional features,
-conditions, presentation order, external channels, and acquisition metadata.
-A bare MNE `Raw` object cannot retain all of this information.
+## What you get
 
-```mermaid
-flowchart LR
-    CND["CND MATLAB files"] <--> IO["Reader / writer"]
-    IO <--> MODEL["CNDRecording canonical model"]
-    MODEL <--> ADAPTER["MNE adapter"]
-    ADAPTER <--> MNE["One RawArray per trial"]
-    MODEL --- STIM["Stimulus features + trial metadata"]
-    VALIDATE["Shared validator"] -.-> IO
-    VALIDATE -.-> MODEL
-    VALIDATE -.-> ADAPTER
-```
+- Read and write CND neural + stimulus files
+- One MNE `Raw` per trial (because trials are often different lengths)
+- The leftover CND fields kept on a companion object, so a round trip does not drop them
+- Optional views of stimulus tracks, sparse events, and extra sensors (mastoids, EOG, …)
+- Optional concatenation, with markers where trials were glued together
+- Command-line `inspect` and `verify-dataset`
 
-`MNECNDRecording` therefore contains both:
+EEG and the fNIRS layout in the public CND catalogue work. MEG (a different scanner that records magnetic fields), TRF result files (a later analysis, not the raw recording), automatic unit detection, and automatic electrode-coordinate scaling do not.
 
-- `raws`: the MNE objects used for analysis and plotting; and
-- `cnd`: the complete canonical information required for a controlled export.
+I ran the verifier on every downloadable collection linked from the public catalogue: 1,026 neural files, 17,774 trials. 1,017 pass. Eight BabyRhythm files convert but contain no neural samples. One file in the SparrKULee1 zip (`dataSub48.mat`) is truncated in the published archive. Details: [docs/results](docs/results/README.md).
 
-## Quick start
+Those numerical checks can use a dummy unit of 1 when the file has no unit. That only tests whether values were copied or flipped. It does not mean the files are in volts.
+
+## Download and install
+
+You need [git](https://git-scm.com/), [uv](https://docs.astral.sh/uv/), and Python 3.10 or newer.
 
 ```bash
+git clone https://github.com/finnjclancy/cnd-mne-converter.git
+cd cnd-mne-converter
 uv sync --extra dev
-uv run cnd-mne inspect /path/to/dataset/dataCND --subject 1
 ```
 
-### CND to MNE
+A tiny example CND folder ships in the repo. Check that it opens:
+
+```bash
+uv run cnd-mne inspect tests/data/minimal-cnd --subject 1
+```
+
+You should see JSON for two trials, four EEG channels, and two stimulus tracks (`Speech Envelope`, `Word Onsets`). `inspect` only reads the MATLAB; it does not need a unit.
+
+## Convert CND to MNE
+
+The bundled example already declares `uV`, so this runs as-is:
 
 ```python
 from cnd_mne import read_cnd_mne
 
-# Use uV only if the dataset documentation or data owner confirms it.
-mne_recording = read_cnd_mne("/path/to/dataCND", subject=1, neural_unit="uV")
-first_trial = mne_recording.raws[0]
-first_trial.plot()
+rec = read_cnd_mne("tests/data/minimal-cnd", subject=1)
+rec.raws[0].plot()
 ```
 
-If a subject file contains several modalities, inspect them and select one
-explicitly:
+`rec.raws` is one MNE `Raw` per trial. `rec.cnd` is the original CND information.
+
+Most public CND files do **not** declare a unit. Then you must pass one that the data owner actually confirmed:
+
+```python
+rec = read_cnd_mne("/path/to/dataCND", subject=1, neural_unit="uV")
+```
+
+If a subject file has more than one recording type:
 
 ```python
 from cnd_mne import available_neural_variables
 
 print(available_neural_variables("/path/to/dataSub1.mat"))
-mne_recording = read_cnd_mne(
-    "/path/to/dataSub1.mat", neural_variable="eeg", neural_unit="uV"
-)
+rec = read_cnd_mne("/path/to/dataSub1.mat", neural_variable="eeg", neural_unit="uV")
 ```
 
-Unselected modality variables are retained in
-`mne_recording.cnd.additional_variables` and written back during a
-template-backed export.
+The unused type stays on `rec.cnd.additional_variables` and is written back on export. Trials are not joined and stimulus tracks are not resampled unless you ask. Missing electrode locations become names like `EEG001` and there is no montage (no map of where sensors sat on the head).
 
-The adapter does not concatenate trials or resample stimulus features. If CND
-does not contain channel locations, generated names such as `EEG001` are used
-and no montage is created.
-
-### Stimulus features and explicit concatenation
+Optional views (names come from the CND file; these are the ones in the bundled example):
 
 ```python
-# The speech envelope keeps the stimulus sampling rate and arbitrary units.
-envelope_trials = mne_recording.stimulus_raws("Speech Envelope Vectors")
-
-# Sparse word-onset vectors can be explicitly exposed as annotations.
-word_events = mne_recording.stimulus_annotations("Word Onsets")
-
-# External channels remain separate and require an explicit unit and type.
-mastoids = mne_recording.external_raws(
-    unit="uV", channel_names=("M1", "M2"), channel_types="eeg"
-)
-
-# This is opt-in. MNE boundary annotations protect every artificial join.
-continuous_view = mne_recording.concatenate()
-print(mne_recording.trial_slices)
+envelope = rec.stimulus_raws("Speech Envelope")
+words = rec.stimulus_annotations("Word Onsets")
+eog = rec.external_raws(unit="uV", channel_types="eog")
+continuous = rec.concatenate()  # opt-in; fake joins are marked
 ```
 
-### MNE to CND
+## Convert MNE back to CND
+
+If you started from CND, write back through that template so envelopes and trial order survive:
 
 ```python
-# Filtering can modify the MNE values without changing trial length.
-mne_recording.raws[0].filter(1, 15)
-
-# The source template retains stimulus features and CND-only metadata.
-paths = mne_recording.write_cnd(
+rec.raws[0].filter(1, 15)
+paths = rec.write_cnd(
     "converted/dataCND", subject=1, output_unit="uV", mat_version="7.3"
 )
 ```
 
-Existing files are protected unless `overwrite=True` is passed. MNE cannot
-infer speech envelopes, word onsets, conditions, or original trial order, so
-use template-backed export after importing CND. For MNE data created elsewhere,
-`from_mne(...)` constructs a new CND recording and reports unsupported metadata.
+Existing files are left alone unless you pass `overwrite=True`.
 
-### Verify a complete dataset
+MNE cannot invent speech envelopes. For data that never was CND, `from_mne(...)` builds a new recording and tells you what it could not represent.
+
+## Check a whole dataset
 
 ```bash
 uv run cnd-mne verify-dataset /path/to/dataset \
@@ -158,82 +119,30 @@ uv run cnd-mne verify-dataset /path/to/dataset \
   --output verification.json
 ```
 
-For a smaller reference dataset, the verifier can also exercise the real
-MATLAB writer and reader rather than only the in-memory conversion:
+`--serialized-round-trip` also writes and rereads MATLAB (slow, needs disk). `--strict-spec` is for new CND you created, not for messy legacy files. Only pass a unit the owner confirmed.
 
-```bash
-uv run cnd-mne verify-dataset /path/to/dataset \
-  --neural-unit uV \
-  --serialized-round-trip \
-  --mat-version 7.3
-```
+## What it will not do quietly
 
-Serialized verification is opt-in because rewriting an entire multi-gigabyte
-catalogue requires substantial temporary disk space. The normal writer stages
-all outputs before publication and restores existing files if any part fails.
+- Resample or truncate to hide a clock mismatch (AliceSpeech is 500 Hz neural / 50 Hz stimulus)
+- Assume volts, millivolts, or µV
+- Assume `chanlocs` are in metres, or that they are even EEGLAB channel structs (EEGLAB is another EEG toolbox)
+- Drop unknown fields just because MNE has nowhere to put them
 
-The unit is mandatory for MNE checks when a legacy file omits it. Supply only a
-unit confirmed by the dataset owner. Use `--strict-spec` when validating newly
-created CND data against the published CND 1.0 rules.
+## More detail
 
-For fNIRS, MNE stores haemoglobin concentrations in molar (`M`) units. The
-reader combines CND's `datatype x trial` cells into one MNE trial while
-retaining the block sizes needed to reconstruct the original CND layout.
-
-## Design rules
-
-1. **One `RawArray` per trial.** CND trials can have different durations, while
-   an MNE `Epochs` object normally requires equal-length epochs.
-2. **Preserve legacy clocks and report conformance.** CND 1.0 requires equal
-   neural and stimulus rates, but AliceSpeech stores 500 Hz and 50 Hz. Tolerant
-   mode preserves both clocks and warns; strict mode rejects the mismatch.
-3. **No automatic resampling or truncation.** Either changes scientific data
-   and must be requested through a future explicit policy.
-4. **No unit guessing.** MNE EEG is in volts and fNIRS concentrations are in
-   molar units; conversion stops when CND does not declare a unit and the
-   caller does not provide one.
-5. **No coordinate guessing.** Montage conversion is opt-in and requires an
-   explicit scale to metres.
-6. **Preserve unknown fields.** Legacy datasets contain useful experiment
-   metadata outside the core specification.
-7. **Canonicalize named external groups.** CND 1.0 allows one `extChan` field
-   per external-signal type. Field names are sorted so channel order is stable
-   across MATLAB v5 and v7.3 readers, while group boundaries are retained.
-8. **Protect round trips.** CND-specific information remains in the canonical
-   model instead of being forced into unsuitable MNE fields.
-
-## Repository documentation
-
-- [Observed dataset compatibility](docs/dataset-compatibility.md)
-- [Research milestone report](docs/research-milestone-report.md)
-- [Technical readiness and remaining decisions](docs/technical-readiness.md)
-- [Concrete proposal for the MNE-facing API](docs/upstream-mne-proposal.md)
-- [Full-dataset verification evidence](docs/results/README.md)
-- [Testing strategy and coverage interpretation](docs/testing-strategy.md)
-- [Public test-dataset release and checksums](docs/dataset-assets.md)
-- [Review of existing Python CND importers](docs/existing-importers.md)
-- [Audit against the official CND 1.0 specification](docs/cnd-spec-audit.md)
-- [Implementation roadmap](docs/implementation-roadmap.md)
-- [Scientific validation checklist](docs/scientific-validation-checklist.md)
-- [Questions for CND and MNE maintainers](docs/questions-for-maintainers.md)
+- [What the public datasets actually look like](docs/dataset-compatibility.md)
+- [Verification evidence](docs/results/README.md)
 - [Field mapping](docs/field-mapping.md)
-- [ADR 0001: canonical model](docs/decisions/0001-canonical-model.md)
-- [ADR 0002: trial representation](docs/decisions/0002-variable-length-trials.md)
-- [ADR 0003: explicit scientific transforms](docs/decisions/0003-explicit-transforms.md)
-- [ADR 0004: stimulus companion model](docs/decisions/0004-stimulus-companion.md)
-- [Reference material](docs/resources.md)
+- [Questions that still need the lab / MNE people](docs/questions-for-maintainers.md)
+- [CND 1.0 audit](docs/cnd-spec-audit.md)
 
 ## Development
 
 ```bash
-uv sync --extra dev
 uv run pytest --cov=cnd_mne
 uv run ruff check .
 uv run ruff format --check .
 uv run mypy src/cnd_mne
 ```
 
-Large public datasets are intentionally excluded from Git history. They are
-available from their original public sources; committed checksum manifests
-record the exact files used for local integration tests. CI uses the small,
-committed and regeneratable MATLAB fixture under `tests/data/`.
+Public datasets are not in git. Checksums for the files I used are in `docs/manifests/`. CI uses `tests/data/minimal-cnd`.

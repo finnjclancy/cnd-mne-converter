@@ -1,6 +1,6 @@
-# Review of existing Python CND importers
+# Other Python CND loaders
 
-Reviewed against the public source and exercised locally on 2026-08-26.
+Looked at the public source and ran them on 26 August 2026.
 
 ## Eelbrain
 

@@ -1,8 +1,6 @@
-# Observed public dataset compatibility
+# Public dataset compatibility
 
-The table below records a structural scan of every downloadable CND collection
-linked by the public catalogue. This is not scientific validation of the
-datasets or their physical units.
+Structural scan of every downloadable CND collection linked from the public catalogue. This is not scientific validation, and it does not assign physical units.
 
 | Dataset | Subjects scanned | Trials per subject | Neural / stimulus rate | Channels | Features | Important variation | Prototype result |
 | --- | ---: | ---: | --- | ---: | ---: | --- | --- |
@@ -18,7 +16,7 @@ datasets or their physical units.
 | VocodedSpeech | 13 | 25 | 128 / 128 Hz | 128 | 3 | Subject 13 absent while subject 14 is present; no channel locations; subject-specific stimuli | All 13 pairs pass with the numbering gap preserved |
 | FDSpeech L1 | 25 | 15 | 100 / 100 Hz | 64 | 12 | `pre_dataSubN.mat` names; feature streams often differ by one sample | All 25 subjects pass with 305 feature-length warnings retained |
 | FDSpeech L2 | 25 | 13–15 | 100 / 100 Hz | 64 | 12 | Fifteen files use a 66-entry topomap layout containing 64 channels plus `COMNT` and `SCALE`; one neural/stimulus trial-count mismatch | All 25 subjects pass after separating real channels from layout drawing helpers |
-| PolyphonicBach | 31 | 32 | 64 / 128 Hz | 24 | 48 | Sparse left/right musical features, one duplicated composite name, MATLAB v7.3 files, and a one-sample 24-channel trial | All 31 subjects pass after preserving sparse features and resolving the squeezed one-sample trial |
+| PolyphonicBach | 31 | 32 | 500 / 125 or 250 / 125 Hz | 24 | 48 | Sparse left/right musical features, one duplicated composite name, MATLAB v7.3 files, and a one-sample 24-channel trial | All 31 subjects pass after preserving sparse features and resolving the squeezed one-sample trial |
 | DiliBach | 20 | 30 | 512 / 64 Hz | 64 | 7 | Empty `origTrialPosition` fields mean absent metadata; musical pitch/onset features; large clock difference | All 20 subjects pass after normalizing empty optional order metadata to `None` |
 | SparrKULee1 | 78 files | 1–11 | 64 Hz / no stimulus in archive | 64 | 0 | MATLAB v7.3, external mastoids, irregular subject numbering; subject 48 is a CRC-valid but internally truncated HDF5 file | 77 files pass; subject 48 is an unrecoverable upstream source corruption |
 
@@ -110,15 +108,10 @@ uv run cnd-mne verify-dataset /path/to/dataset \
 Use `V` only for a neutral numerical identity test. A scientific run must use a
 confirmed physical unit.
 
-## Unresolved scientific questions
+## Still unknown
 
-- Confirm stored EEG units for each public CND dataset with its documentation
-  or data owner.
-- Confirm coordinate unit and head-frame semantics for EEGLAB-style
-  `chanlocs`.
-- Define the meaning of neural samples before and after the stimulus, including
-  datasets with and without `paddingStartSample`.
-- Determine whether the seven unusually long Lalor neural trials across five
-  subjects are intentional; their largest neural/stimulus difference is 197 s.
-- Decide how attended and unattended AAD stimulus files should be represented
-  together without renaming or losing provenance.
+- EEG units for each public dataset (nobody wrote them down)
+- `chanlocs` units / frame
+- Padding and the extra neural samples before/after the stimulus
+- Whether Lalor's ~197 s surplus neural time is on purpose (subjects 1, 3, 6, 7, 8)
+- How attended and unattended AAD files should sit together

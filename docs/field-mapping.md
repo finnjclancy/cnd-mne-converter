@@ -1,7 +1,6 @@
-# CND-MNE field mapping
+# Field mapping
 
-This table records the implemented mapping and the scientific decisions still
-requiring confirmation.
+What CND fields become, and what is still a guess if you do not pass extra arguments.
 
 | CND concept | Canonical representation | MNE representation | Policy / risk |
 | --- | --- | --- | --- |

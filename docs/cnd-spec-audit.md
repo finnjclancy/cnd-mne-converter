@@ -1,7 +1,6 @@
-# CND 1.0 specification audit
+# CND 1.0 audit
 
-Audit performed on 26 August 2026 against the official five-page CND
-Specifications document (version 1.0, last updated 24 January 2024).
+Checked 26 August 2026 against the five-page [CND 1.0 spec](https://data.cnspworkshop.net/CND_Specifications.pdf) (24 January 2024).
 
 ## Structural requirements checked
 

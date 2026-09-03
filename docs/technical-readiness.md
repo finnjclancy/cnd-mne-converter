@@ -1,82 +1,29 @@
-# Technical readiness before scientific review
+# Technical readiness
 
-## Bottom line
+The parser/writer is in good enough shape for review. What is left is not "handle one more MATLAB layout". It is units, coordinates, padding, and whether this API is what MNE would even want.
 
-The standalone converter is technically ready for supervisor and maintainer
-review. The remaining blockers are not unfinished parser work: they are
-scientific semantics that are absent from legacy CND files and API choices that
-must be agreed with the CND and MNE maintainers.
+## Done
 
-## Engineering completed
+- Read and write MATLAB v5 and v7.3
+- Keep variable-length trials, leftover modalities, extra channels, unknown fields
+- EEG + the public-catalogue fNIRS layout, with explicit units
+- Stimulus views, optional event annotations, optional concatenation
+- Write back through the original CND template
+- `verify-dataset` on the public catalogue (see [results](results/README.md))
+- CI on Linux / macOS / Windows, Python 3.10–3.13
 
-- Read and write MATLAB v5 and v7.3/HDF5 CND files.
-- Preserve variable-length and empty trials, independent stimulus clocks,
-  conditions, original trial positions, external data, and extension fields.
-- Select among multiple recording modalities without discarding unselected
-  top-level variables, and reconstruct both legacy and CND 1.0 external-channel
-  layouts.
-- Convert supported EEG and observed fNIRS layouts into MNE objects using
-  explicit physical units.
-- Provide continuous stimulus views, opt-in event annotations, external-channel
-  views, and boundary-protected concatenation.
-- Export edited MNE values using the retained CND template.
-- Publish neural and stimulus files as one transactional output set: failed
-  serialization or publication restores the previous files.
-- Verify neural, stimulus, and external-channel values independently.
-- Optionally exercise the actual MATLAB writer and reader during dataset
-  verification for both supported MAT formats.
-- Test Linux, macOS, Windows, Python 3.10–3.13, and minimum/current MNE.
-- Build and install-test both the wheel and source distribution in CI.
-- Record reproducible evidence for the full linked public CND catalogue.
+As of 26 August 2026: 116 tests, 95% statement coverage, ruff + mypy clean. NAPlib and Eelbrain can load the committed fixture (Eelbrain needs two layouts stripped; its reader is narrower).
 
-## Checks completed locally
+## Will not be decided in code
 
-As of 26 August 2026:
+1. Physical EEG unit of each legacy dataset
+2. `chanlocs` units / axes / frame
+3. `paddingStartSample` and surplus samples
+4. What extra channels actually are
+5. Which sparse features are events
+6. Whether the companion object is the upstream MNE API
+7. Import-only vs import+export vs TRF files
 
-- 116 automated tests pass;
-- statement coverage is 95.34%;
-- Ruff lint and format checks pass;
-- Mypy passes for the typed public package, which includes a `py.typed` marker;
-- the installed dependency set passes `uv pip check`;
-- locked runtime dependencies have no vulnerabilities reported by `pip-audit`,
-  and Bandit reports no source findings;
-- MATLAB v5 and v7.3 serialized round trips pass on the committed fixture; and
-- NAPlib 2.6.0 independently loads the committed fixture with the expected
-  neural trial shapes; Eelbrain 0.41.2 loads its core EEG representation after
-  removing two layouts that its narrower reader does not support; and
-- the repository has no known converter defect among readable public files.
+## After those answers
 
-CI repeats the dependency and source audits so later dependency or code changes
-cannot silently invalidate this result. Dependabot is configured for monthly
-Python-package and GitHub Actions update proposals.
-
-## Decisions that cannot be made safely in code
-
-1. The physical EEG unit of each legacy public dataset.
-2. The unit, axes, origin, and frame of CND channel coordinates.
-3. The intended meaning of `paddingStartSample` and surplus samples.
-4. Which external channels represent EEG references, EOG, audio, triggers, or
-   other measurements, and their units.
-5. Which sparse stimulus features should be treated as events.
-6. Whether the proposed companion object is the API MNE wants upstream.
-7. Whether the first upstream scope is import only, import/export, or also TRF
-   results.
-
-The converter deliberately exposes these as explicit arguments or retained
-metadata instead of inserting undocumented defaults.
-
-## Work after answers are received
-
-Once a reference dataset and its semantics are confirmed, the remaining work
-is a bounded validation and upstreaming exercise:
-
-1. run the independent scientific comparison;
-2. record the approved unit and coordinate policy;
-3. adjust the public API if maintainers request it;
-4. prepare review-sized MNE contributions; and
-5. tag the first release after approval.
-
-MEG, arbitrary fNIRS layouts, lazy loading, automatic alignment/resampling, and
-TRF-result interchange are intentionally excluded from the first scope. They
-require real examples or scientific/API decisions and should not be presented
-as generic transformations that are safe to implement speculatively.
+Pick one subject, compare against MATLAB / NAPlib / Eelbrain, write down the unit and coordinate policy, then a small MNE proposal. MEG, lazy loading, auto-alignment, and TRF interchange stay out of that first proposal.
