@@ -4,7 +4,7 @@ A Python package for opening lab brain recordings in Python, analysing them with
 
 [![CI](https://github.com/finnjclancy/cnd-mne-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/finnjclancy/cnd-mne-converter/actions/workflows/ci.yml)
 
-This GitHub repo is private. You need collaborator access before `git clone` will work. It is not on PyPI yet.
+This repo is public. It is not on PyPI yet.
 
 The [Di Liberto lab](https://www.diliberg.net/) stores experiments as **CND**: MATLAB `.mat` files with the brain signal *and* what the person was hearing or doing at the same time. Public CND is on the [CNSP dataset catalogue](https://cnsp-resources.readthedocs.io/en/latest/datasetsPage.html) ([CND 1.0 spec](https://data.cnspworkshop.net/CND_Specifications.pdf)).
 
