@@ -447,7 +447,8 @@ def _verify_subject(
         else:
             empty["outcome"] = "verification_failure"
     except Exception as error:  # report each subject without aborting the matrix
-        empty["failure"] = f"{type(error).__name__}: {error}"
+        message = str(error).replace(str(neural_file), neural_file.name)
+        empty["failure"] = f"{type(error).__name__}: {message}"
         if stage == "read" and isinstance(error, CNDValidationError):
             empty["outcome"] = "validation_failure"
         else:

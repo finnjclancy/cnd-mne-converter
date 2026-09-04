@@ -263,6 +263,7 @@ class MNECNDRecording:
         overwrite: bool = False,
         compression: bool = True,
         mat_version: Literal["5", "7.3"] = "5",
+        preserve_source_filenames: bool = True,
         on_unsupported_metadata: UnsupportedMetadataPolicy = "warn",
     ) -> CNDPaths:
         """Export edited MNE values and atomically write a CND directory."""
@@ -272,10 +273,25 @@ class MNECNDRecording:
             output_unit=output_unit,
             on_unsupported_metadata=on_unsupported_metadata,
         )
+        neural_filename = None
+        stimulus_filename = None
+        if preserve_source_filenames:
+            if self.cnd.neural is not None and self.cnd.neural.source_path is not None:
+                name = self.cnd.neural.source_path.name
+                if name.startswith(("dataParticipant_", "pre_dataSub")):
+                    neural_filename = name
+            if (
+                self.cnd.stimulus is not None
+                and self.cnd.stimulus.source_path is not None
+                and self.cnd.stimulus.source_path.name != "dataStim.mat"
+            ):
+                stimulus_filename = self.cnd.stimulus.source_path.name
         return write_cnd(
             recording,
             destination,
             subject=subject,
+            neural_filename=neural_filename,
+            stimulus_filename=stimulus_filename,
             overwrite=overwrite,
             compression=compression,
             mat_version=mat_version,

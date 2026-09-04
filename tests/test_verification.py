@@ -159,6 +159,8 @@ def test_verify_reports_missing_dataset_and_subject_failure(
     assert not report.passed
     assert report.subjects[0].outcome == "source_read_failure"
     assert report.subjects[0].failure.startswith("CNDReadError:")
+    assert str(tmp_path) not in report.subjects[0].failure
+    assert "dataSub1.mat" in report.subjects[0].failure
     assert report.to_dict()["summary"]["n_failed_subjects"] == 1
 
 

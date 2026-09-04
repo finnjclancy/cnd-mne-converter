@@ -473,3 +473,23 @@ def test_convenience_read_and_write_mne_api(sample_recording, tmp_path) -> None:
     np.testing.assert_allclose(
         reloaded.raws[0].get_data(), converted.raws[0].get_data()
     )
+
+
+def test_mne_write_preserves_named_participant_files(
+    sample_recording, tmp_path
+) -> None:
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    write_cnd(
+        sample_recording,
+        source,
+        neural_filename="dataParticipant_P001.mat",
+        stimulus_filename="dataStim_P001.mat",
+    )
+
+    converted = read_cnd_mne(source, subject="P001", neural_unit="uV")
+    paths = converted.write_cnd(destination, output_unit="uV")
+
+    assert paths.neural == destination / "dataParticipant_P001.mat"
+    assert paths.stimulus == destination / "dataStim_P001.mat"
+    assert read_cnd_mne(destination, subject="P001", neural_unit="uV").raws

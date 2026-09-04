@@ -123,6 +123,36 @@ def test_named_participant_stimulus_is_inferred(sample_recording, tmp_path) -> N
     assert loaded_from_directory.neural.n_trials == 2
 
 
+def test_writer_accepts_named_participant_output_files(
+    sample_recording, tmp_path
+) -> None:
+    paths = write_cnd(
+        sample_recording,
+        tmp_path,
+        neural_filename="dataParticipant_P001.mat",
+        stimulus_filename="dataStim_P001.mat",
+    )
+
+    assert paths.neural == tmp_path / "dataParticipant_P001.mat"
+    assert paths.stimulus == tmp_path / "dataStim_P001.mat"
+    assert read_cnd(tmp_path, subject="P001").n_trials == 2
+
+
+@pytest.mark.parametrize(
+    ("argument", "value"),
+    [
+        ("neural_filename", "../dataSub1.mat"),
+        ("neural_filename", "recording.mat"),
+        ("stimulus_filename", "stimulus.mat"),
+    ],
+)
+def test_writer_rejects_non_cnd_output_filenames(
+    sample_recording, tmp_path, argument, value
+) -> None:
+    with pytest.raises(ValueError, match=f"{argument} is not"):
+        write_cnd(sample_recording, tmp_path, **{argument: value})
+
+
 def test_prefixed_subject_and_parent_stimulus_are_inferred(
     sample_recording, tmp_path
 ) -> None:
