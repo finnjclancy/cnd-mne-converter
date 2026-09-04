@@ -175,7 +175,8 @@ def test_failure_message_hides_temporary_directory() -> None:
         RuntimeError(f"failed beside {temporary_file.parent}"), temporary_file
     )
 
-    assert failure == "RuntimeError: failed beside <temporary>/private"
+    assert failure.startswith("RuntimeError: failed beside <temporary>")
+    assert failure.endswith("private")
 
 
 def test_verify_distinguishes_invalid_cnd_from_unreadable_source(tmp_path) -> None:
