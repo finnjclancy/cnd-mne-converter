@@ -12,6 +12,17 @@ Zips used for integration testing. Release assets on [datasets-v0.1](https://git
 
 Complete Lalor zip: 3,518,927,722 bytes, SHA-256 `4626367ba97f35b5a9e9e15ff19cbe57384a264d56bd076e81b322cbcf725bff`.
 
+## Licence and citation
+
+These are dataset mirrors, not part of this repo's BSD licence. Keep each archive under its original terms and cite both the dataset and [CNSP](https://cnsp-resources.readthedocs.io/en/latest/citation.html).
+
+- **Lalor Natural Speech:** CC0 through [OpenNeuro ds004408](https://openneuro.org/datasets/ds004408), DOI [`10.18112/openneuro.ds004408.v1.0.8`](https://doi.org/10.18112/openneuro.ds004408.v1.0.8).
+- **AliceSpeech:** CC BY 4.0. Cite Brennan, *EEG Datasets for Naturalistic Listening to “Alice in Wonderland”*, DOI [`10.7302/Z29C6VNH`](https://doi.org/10.7302/Z29C6VNH), and Brennan & Hale (2019).
+- **AAD KULeuven:** CC BY-NC-SA 4.0. Cite Das, Francart, and Bertrand's [Zenodo record](https://doi.org/10.5281/zenodo.4004271) and Biesmans et al. (2016). Redistribution must remain non-commercial, attributed, and under the same licence.
+- **Music Imagery:** CC0 through [Dryad](https://doi.org/10.5061/dryad.dbrv15f0j). Cite Marion, Di Liberto, and Shamma (2021).
+
+The CNSP site says each dataset keeps its original licence. Its BSD licence covers CNSP software and documentation; it does not replace these dataset terms.
+
 Downloaded from CNSP, not on that release:
 
 | Dataset | Archive | Size (bytes) | SHA-256 |
@@ -28,4 +39,4 @@ cat datasetCND_LalorNatSpeech.zip.part-aa \
 shasum -a 256 datasetCND_LalorNatSpeech.zip
 ```
 
-Unmodified public archives; Lalor is split byte-for-byte into two release assets. Original licences still apply. CNSP is the source of truth.
+Unmodified public archives; Lalor is split byte-for-byte into two release assets. CNSP remains the source for the CND copies.
