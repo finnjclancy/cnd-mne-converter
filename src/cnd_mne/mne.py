@@ -283,7 +283,9 @@ class MNECNDRecording:
             if (
                 self.cnd.stimulus is not None
                 and self.cnd.stimulus.source_path is not None
+                and self.cnd.stimulus.source_path.name.startswith("dataStim")
                 and self.cnd.stimulus.source_path.name != "dataStim.mat"
+                and self.cnd.stimulus.source_path.suffix == ".mat"
             ):
                 stimulus_filename = self.cnd.stimulus.source_path.name
         return write_cnd(

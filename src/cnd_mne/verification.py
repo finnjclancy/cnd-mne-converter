@@ -196,7 +196,9 @@ def verify_dataset(
     return DatasetVerification(
         schema_version=4,
         dataset_name=dataset_name or source.name,
-        dataset_path=str(supplied_path),
+        dataset_path=(
+            source.name if supplied_path.is_absolute() else str(supplied_path)
+        ),
         generated_at_utc=datetime.now(timezone.utc).isoformat(),
         versions={
             "cnd_mne": _package_version(),
@@ -447,8 +449,7 @@ def _verify_subject(
         else:
             empty["outcome"] = "verification_failure"
     except Exception as error:  # report each subject without aborting the matrix
-        message = str(error).replace(str(neural_file), neural_file.name)
-        empty["failure"] = f"{type(error).__name__}: {message}"
+        empty["failure"] = _safe_failure_message(error, neural_file)
         if stage == "read" and isinstance(error, CNDValidationError):
             empty["outcome"] = "validation_failure"
         else:
@@ -644,6 +645,14 @@ def _subject_label(path: Path) -> str:
     if stem.startswith("dataParticipant_"):
         return stem.removeprefix("dataParticipant_")
     return stem
+
+
+def _safe_failure_message(error: Exception, neural_file: Path) -> str:
+    message = str(error).replace(str(neural_file), neural_file.name)
+    temporary = Path(tempfile.gettempdir())
+    for prefix in {str(temporary), str(temporary.resolve())}:
+        message = message.replace(prefix, "<temporary>")
+    return f"{type(error).__name__}: {message}"
 
 
 def _optional_max(values: Any) -> float | None:
