@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from dataclasses import replace
+from pathlib import Path
 
 import mne
 import numpy as np
@@ -14,6 +16,7 @@ from cnd_mne.verification import (
     _metadata_equal,
     _mne_psd_is_finite,
     _optional_trial_values_equal,
+    _safe_failure_message,
     _serialized_round_trip,
     _stimulus_values_equal,
 )
@@ -88,6 +91,8 @@ def test_verify_cli_writes_json_report(sample_recording, tmp_path, capsys) -> No
     assert saved["summary"]["passed"]
     assert saved["serialized_round_trip_requested"]
     assert saved["serialized_mat_version"] == "7.3"
+    assert saved["dataset_path"] == "dataset"
+    assert str(tmp_path) not in json.dumps(saved)
 
 
 def test_verify_without_unit_performs_structural_checks_only(
@@ -162,6 +167,15 @@ def test_verify_reports_missing_dataset_and_subject_failure(
     assert str(tmp_path) not in report.subjects[0].failure
     assert "dataSub1.mat" in report.subjects[0].failure
     assert report.to_dict()["summary"]["n_failed_subjects"] == 1
+
+
+def test_failure_message_hides_temporary_directory() -> None:
+    temporary_file = Path(tempfile.gettempdir()) / "private" / "dataSub1.mat"
+    failure = _safe_failure_message(
+        RuntimeError(f"failed beside {temporary_file.parent}"), temporary_file
+    )
+
+    assert failure == "RuntimeError: failed beside <temporary>/private"
 
 
 def test_verify_distinguishes_invalid_cnd_from_unreadable_source(tmp_path) -> None:

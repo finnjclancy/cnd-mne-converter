@@ -116,11 +116,14 @@ def test_named_participant_stimulus_is_inferred(sample_recording, tmp_path) -> N
     paths.stimulus.rename(stimulus)
 
     loaded = read_cnd(participant)
-    loaded_from_directory = read_cnd(tmp_path, subject="P001")
+    loaded_from_directory = read_cnd(tmp_path)
+    round_trip = write_cnd(loaded, tmp_path / "round-trip")
 
     assert loaded.neural.n_trials == 2
     assert loaded.stimulus.n_trials == 2
     assert loaded_from_directory.neural.n_trials == 2
+    assert round_trip.neural.name == "dataParticipant_P001.mat"
+    assert round_trip.stimulus.name == "dataStim_P001.mat"
 
 
 def test_writer_accepts_named_participant_output_files(

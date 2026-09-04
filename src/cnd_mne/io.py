@@ -65,8 +65,11 @@ def read_cnd(
     if source.is_dir():
         data_directory = source / "dataCND" if (source / "dataCND").is_dir() else source
         neural_path = _resolve_subject_file(data_directory, subject)
+        stimulus_subject = subject
+        if stimulus_subject is None and neural_path is not None:
+            stimulus_subject = _subject_from_filename(neural_path)
         inferred_stimulus = _resolve_stimulus_file(
-            data_directory, subject, required=False
+            data_directory, stimulus_subject, required=False
         )
         if neural_path is not None:
             neural, additional_variables = _read_neural_file(
@@ -165,6 +168,24 @@ def write_cnd(
     report.raise_for_errors()
     output_dir = Path(destination).expanduser()
     subject_label = _canonical_subject_label(subject)
+    if (
+        neural_filename is None
+        and recording.neural is not None
+        and recording.neural.source_path is not None
+        and recording.neural.source_path.name.startswith(
+            ("dataParticipant_", "pre_dataSub")
+        )
+    ):
+        neural_filename = recording.neural.source_path.name
+    if (
+        stimulus_filename is None
+        and recording.stimulus is not None
+        and recording.stimulus.source_path is not None
+        and recording.stimulus.source_path.name.startswith("dataStim")
+        and recording.stimulus.source_path.name != "dataStim.mat"
+        and recording.stimulus.source_path.suffix == ".mat"
+    ):
+        stimulus_filename = recording.stimulus.source_path.name
 
     neural_path = (
         output_dir
