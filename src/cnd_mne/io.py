@@ -148,6 +148,8 @@ def write_cnd(
     destination: str | Path,
     *,
     subject: str | int = 1,
+    neural_filename: str | None = None,
+    stimulus_filename: str | None = None,
     overwrite: bool = False,
     compression: bool = True,
     mat_version: Literal["5", "7.3"] = "5",
@@ -165,12 +167,26 @@ def write_cnd(
     subject_label = _canonical_subject_label(subject)
 
     neural_path = (
-        output_dir / f"dataSub{subject_label}.mat"
+        output_dir
+        / _cnd_output_filename(
+            neural_filename,
+            default=f"dataSub{subject_label}.mat",
+            pattern=r"(?:dataSub.+|pre_dataSub.+|dataParticipant_.+)\.mat",
+            kind="neural",
+        )
         if recording.neural is not None
         else None
     )
     stimulus_path = (
-        output_dir / "dataStim.mat" if recording.stimulus is not None else None
+        output_dir
+        / _cnd_output_filename(
+            stimulus_filename,
+            default="dataStim.mat",
+            pattern=r"dataStim.*\.mat",
+            kind="stimulus",
+        )
+        if recording.stimulus is not None
+        else None
     )
     planned_paths = [path for path in (neural_path, stimulus_path) if path is not None]
     if not overwrite:
@@ -1112,3 +1128,12 @@ def _canonical_subject_label(subject: str | int) -> str:
     if not value.isdigit() or int(value) < 1:
         raise ValueError("subject must be a positive numeric CND index")
     return str(int(value))
+
+
+def _cnd_output_filename(
+    filename: str | None, *, default: str, pattern: str, kind: str
+) -> str:
+    value = default if filename is None else filename
+    if Path(value).name != value or re.fullmatch(pattern, value) is None:
+        raise ValueError(f"{kind}_filename is not a recognised CND .mat filename")
+    return value

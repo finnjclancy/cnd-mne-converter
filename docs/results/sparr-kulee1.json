@@ -1226,7 +1226,7 @@
       "round_trip_max_abs_error_source_units": null,
       "cnd_metadata_preserved": null,
       "conversion_warnings": [],
-      "failure": "CNDReadError: Could not read MATLAB v7.3/HDF5 file /Users/finn/Downloads/College/Research/cnd-mne-converter/data-work/sparr-kulee1-extracted/SparrKULee1/dataCND/dataSub48.mat: Unable to synchronously open file (truncated file: eof = 27775952, sblock->base_addr = 512, stored_eof = 68438459)",
+      "failure": "CNDReadError: Could not read MATLAB v7.3/HDF5 file dataSub48.mat: Unable to synchronously open file (truncated file: eof = 27775952, sblock->base_addr = 512, stored_eof = 68438459)",
       "elapsed_seconds": 0.000548
     },
     {
