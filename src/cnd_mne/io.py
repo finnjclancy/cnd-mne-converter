@@ -879,7 +879,10 @@ def _stimulus_to_mat(stimulus: CNDStimulus) -> dict[str, Any]:
     data = np.empty((stimulus.n_features, stimulus.n_trials), dtype=object)
     for feature_index, trials in enumerate(stimulus.features):
         for trial_index, trial in enumerate(trials):
-            data[feature_index, trial_index] = np.asarray(trial)
+            array = np.asarray(trial)
+            data[feature_index, trial_index] = (
+                array[:, None] if array.ndim == 1 else array
+            )
     result.update(
         {
             "names": _cell_row(stimulus.names),

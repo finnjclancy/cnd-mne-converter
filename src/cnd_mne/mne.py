@@ -191,7 +191,7 @@ class MNECNDRecording:
         self,
         *,
         unit: str,
-        channel_types: str | Sequence[str] = "misc",
+        channel_types: str | Sequence[str] | None = None,
         channel_names: Sequence[str] | None = None,
     ) -> tuple[mne.io.RawArray, ...]:
         """Extra CND channels (EOG, mastoids, …) as their own ``Raw`` objects.
@@ -205,15 +205,26 @@ class MNECNDRecording:
         if first.ndim != 2:
             raise CNDValidationError("CND external trials must be time x channels")
         n_channels = int(first.shape[1])
-        names = (
-            tuple(str(name) for name in channel_names)
-            if channel_names is not None
-            else tuple(f"EXT{index:03d}" for index in range(1, n_channels + 1))
+        stored_names = neural.external_fields.get("channelNames")
+        stored_types = neural.external_fields.get("channelTypes")
+        names = tuple(
+            str(name)
+            for name in (
+                channel_names
+                if channel_names is not None
+                else np.atleast_1d(stored_names).ravel()
+                if stored_names is not None
+                else tuple(f"EXT{index:03d}" for index in range(1, n_channels + 1))
+            )
         )
         types = (
             (channel_types,) * n_channels
             if isinstance(channel_types, str)
             else tuple(channel_types)
+            if channel_types is not None
+            else tuple(str(value) for value in np.atleast_1d(stored_types).ravel())
+            if stored_types is not None
+            else ("misc",) * n_channels
         )
         if len(names) != n_channels or len(types) != n_channels:
             raise CNDValidationError(
@@ -244,13 +255,19 @@ class MNECNDRecording:
         self,
         *,
         output_unit: str | None = None,
+        cnsp_external_cells: bool = False,
         on_unsupported_metadata: UnsupportedMetadataPolicy = "warn",
     ) -> CNDRecording:
-        """Export edited MNE values while preserving the complete CND template."""
+        """Export edited MNE values while preserving the CND template.
+
+        Set ``cnsp_external_cells`` to wrap a legacy single external group in
+        a MATLAB cell for CNSP scripts that use ``eeg.extChan{1}``.
+        """
         return from_mne(
             self.raws,
             template=self.cnd,
             output_unit=output_unit or self.neural_unit,
+            cnsp_external_cells=cnsp_external_cells,
             on_unsupported_metadata=on_unsupported_metadata,
         )
 
@@ -260,6 +277,7 @@ class MNECNDRecording:
         *,
         subject: str | int = 1,
         output_unit: str | None = None,
+        cnsp_external_cells: bool = False,
         overwrite: bool = False,
         compression: bool = True,
         mat_version: Literal["5", "7.3"] = "5",
@@ -271,6 +289,7 @@ class MNECNDRecording:
 
         recording = self.to_cnd(
             output_unit=output_unit,
+            cnsp_external_cells=cnsp_external_cells,
             on_unsupported_metadata=on_unsupported_metadata,
         )
         neural_filename = None
@@ -406,6 +425,10 @@ def from_mne(
     raws: mne.io.BaseRaw | Sequence[mne.io.BaseRaw],
     *,
     stimulus: CNDStimulus | None = None,
+    external_raws: mne.io.BaseRaw | Sequence[mne.io.BaseRaw] | None = None,
+    external_unit: str | None = None,
+    external_description: str | None = None,
+    cnsp_external_cells: bool = False,
     output_unit: str = "V",
     device_name: str | None = None,
     original_trial_positions: Sequence[int] | None = None,
@@ -416,8 +439,12 @@ def from_mne(
     """Build CND from one or more MNE ``Raw`` objects.
 
     MNE stores EEG in volts. ``output_unit`` is what gets written to CND.
-    Pass stimulus data yourself; MNE cannot invent envelopes. Use ``template``
-    (or :meth:`MNECNDRecording.to_cnd`) to keep leftover CND fields.
+    Pass stimulus data yourself; MNE cannot invent envelopes. Auxiliary channels
+    such as EOG can be passed separately through ``external_raws``. Use
+    ``template`` (or :meth:`MNECNDRecording.to_cnd`) to keep leftover CND fields.
+    New external inputs use MATLAB cell groups. Set ``cnsp_external_cells=True``
+    to also normalize a legacy template single-group struct to that layout;
+    the default preserves the template layout.
     """
     raw_trials = (raws,) if isinstance(raws, mne.io.BaseRaw) else tuple(raws)
     if not raw_trials:
@@ -425,6 +452,19 @@ def from_mne(
     if on_unsupported_metadata not in {"warn", "raise", "ignore"}:
         raise ValueError("on_unsupported_metadata must be 'warn', 'raise', or 'ignore'")
     _handle_unsupported_mne_metadata(raw_trials, on_unsupported_metadata)
+
+    external_trials_raw = (
+        ()
+        if external_raws is None
+        else (external_raws,)
+        if isinstance(external_raws, mne.io.BaseRaw)
+        else tuple(external_raws)
+    )
+    if external_trials_raw and external_unit is None:
+        raise CNDAmbiguousUnitError(
+            "external_unit is required when exporting external_raws"
+        )
+    _handle_unsupported_mne_metadata(external_trials_raw, on_unsupported_metadata)
 
     first = raw_trials[0]
     sfreq = float(first.info["sfreq"])
@@ -455,6 +495,47 @@ def from_mne(
             )
         if tuple(raw.get_channel_types()) != ch_types:
             raise CNDValidationError(f"MNE trial {index} has different channel types")
+
+    external_trials: tuple[np.ndarray, ...] | None = None
+    external_names: tuple[str, ...] | None = None
+    external_types: tuple[str, ...] | None = None
+    if external_trials_raw:
+        if len(external_trials_raw) != len(raw_trials):
+            raise CNDValidationError(
+                "external_raws trial count does not match neural trial count"
+            )
+        external_names = tuple(external_trials_raw[0].ch_names)
+        external_types = tuple(external_trials_raw[0].get_channel_types())
+        external_scale = _unit_scale(str(external_unit), "eeg")
+        converted_external: list[np.ndarray] = []
+        for index, (raw, external) in enumerate(
+            zip(raw_trials, external_trials_raw, strict=True)
+        ):
+            if not np.isclose(float(external.info["sfreq"]), sfreq, rtol=0, atol=1e-12):
+                raise CNDValidationError(
+                    f"MNE external trial {index} has a different sampling rate"
+                )
+            if (
+                external.first_samp != raw.first_samp
+                or external.info["meas_date"] != raw.info["meas_date"]
+            ):
+                raise CNDValidationError(
+                    f"MNE external trial {index} has a different time origin"
+                )
+            if external.n_times != raw.n_times:
+                raise CNDValidationError(
+                    f"MNE external trial {index} has a different sample count"
+                )
+            if tuple(external.ch_names) != external_names:
+                raise CNDValidationError(
+                    f"MNE external trial {index} has different channel names/order"
+                )
+            if tuple(external.get_channel_types()) != external_types:
+                raise CNDValidationError(
+                    f"MNE external trial {index} has different channel types"
+                )
+            converted_external.append(external.get_data().T / external_scale)
+        external_trials = tuple(converted_external)
 
     if template_neural is not None:
         if len(raw_trials) != template_neural.n_trials:
@@ -499,6 +580,30 @@ def from_mne(
             device_name=device_name or template_neural.device_name,
             original_trial_positions=original,
             data_unit=_canonical_unit(output_unit, template_data_type),
+            external_trials=(
+                external_trials
+                if external_trials is not None
+                else template_neural.external_trials
+            ),
+            external_description=(
+                external_description
+                if external_trials is not None
+                else template_neural.external_description
+            ),
+            external_fields=(
+                {
+                    "channelNames": np.asarray(external_names, dtype=object),
+                    "channelTypes": np.asarray(external_types, dtype=object),
+                    "dataUnit": _canonical_unit(str(external_unit), "eeg"),
+                }
+                if external_trials is not None
+                else template_neural.external_fields
+            ),
+            external_layout=(
+                "single_struct"
+                if external_trials is not None
+                else template_neural.external_layout
+            ),
             source_path=None,
         )
         resolved_stimulus = stimulus if stimulus is not None else template.stimulus
@@ -515,12 +620,36 @@ def from_mne(
             device_name=device_name,
             original_trial_positions=original,
             channel_locations=positions or tuple({"labels": name} for name in ch_names),
+            external_trials=external_trials,
+            external_description=external_description,
+            external_fields=(
+                {
+                    "channelNames": np.asarray(external_names, dtype=object),
+                    "channelTypes": np.asarray(external_types, dtype=object),
+                    "dataUnit": _canonical_unit(str(external_unit), "eeg"),
+                }
+                if external_trials is not None
+                else {}
+            ),
+            external_layout=("single_struct" if external_trials is not None else None),
             cnd_version=cnd_version,
             data_unit=_canonical_unit(output_unit, "eeg"),
             extra_fields=extras,
             variable_name="eeg",
         )
         resolved_stimulus = stimulus
+    if (external_trials is not None or cnsp_external_cells) and (
+        neural.external_trials is not None and neural.external_layout == "single_struct"
+    ):
+        # scipy simplifies a singleton MATLAB cell to its contained struct.
+        # Canonicalise single-group MNE exports so CNSP brace indexing survives.
+        neural = replace(
+            neural,
+            external_layout="struct_array",
+            external_group_names=(neural.external_description or "External channels",),
+            external_group_channel_counts=(int(neural.external_trials[0].shape[1]),),
+            external_group_fields=(dict(neural.external_fields),),
+        )
     recording = CNDRecording(
         neural,
         resolved_stimulus,
@@ -612,7 +741,56 @@ def _make_montage(
         if not np.all(np.isfinite(position)):
             raise CNDValidationError(f"Channel {name!r} has non-finite coordinates")
         positions[name] = position
+
+    biosemi_name = _matching_biosemi_montage(neural, ch_names)
+    if biosemi_name is not None:
+        median_radius = float(
+            np.median([np.linalg.norm(position) for position in positions.values()])
+        )
+        if not 0.05 <= median_radius <= 0.11:
+            raise CNDValidationError(
+                "BioSemi coordinates have an implausible median head radius of "
+                f"{median_radius:.6g} m; check coordinate_scale_to_meters"
+            )
+        template = mne.channels.make_standard_montage(
+            biosemi_name, head_size=median_radius
+        )
+        native_head_t = mne.channels.compute_native_head_t(template, on_missing="raise")
+        head_positions = {
+            name: mne.transforms.apply_trans(native_head_t, position)
+            for name, position in positions.items()
+        }
+        template_positions = template.get_positions()
+        fiducials = {
+            name: mne.transforms.apply_trans(native_head_t, template_positions[name])
+            for name in ("nasion", "lpa", "rpa")
+        }
+        return mne.channels.make_dig_montage(
+            ch_pos=head_positions,
+            nasion=fiducials["nasion"],
+            lpa=fiducials["lpa"],
+            rpa=fiducials["rpa"],
+            coord_frame="head",
+        )
     return mne.channels.make_dig_montage(ch_pos=positions, coord_frame="head")
+
+
+def _matching_biosemi_montage(neural: CNDNeural, ch_names: Sequence[str]) -> str | None:
+    """Return an exact MNE BioSemi template match for declared BioSemi data."""
+    if "biosemi" not in (neural.device_name or "").lower():
+        return None
+    for candidate in (
+        "biosemi16",
+        "biosemi32",
+        "biosemi64",
+        "biosemi128",
+        "biosemi160",
+        "biosemi256",
+    ):
+        template = mne.channels.make_standard_montage(candidate, head_size=0.095)
+        if set(ch_names) == set(template.ch_names):
+            return candidate
+    return None
 
 
 def _extract_channel_locations(
@@ -630,12 +808,19 @@ def _extract_channel_locations(
     locations = []
     for index, name in enumerate(raw.ch_names, start=1):
         x_mne, y_mne, z_mne = np.asarray(ch_pos[name], dtype=float)
+        azimuth = float(np.degrees(np.arctan2(-x_mne, y_mne)))
+        elevation = float(np.degrees(np.arctan2(z_mne, np.hypot(x_mne, y_mne))))
         locations.append(
             {
                 "labels": name,
                 "X": y_mne,
                 "Y": -x_mne,
                 "Z": z_mne,
+                "sph_theta": azimuth,
+                "sph_phi": elevation,
+                "sph_radius": float(np.linalg.norm([x_mne, y_mne, z_mne])),
+                "theta": -azimuth,
+                "radius": 0.5 - elevation / 180.0,
                 "urchan": index,
             }
         )

@@ -53,6 +53,10 @@ dev = [
   "pytest-cov>=5",
   "ruff>=0.9",
 ]
+gui = [
+    "mne-qt-browser>=0.6",
+    "pyside6>=6.7",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cnd_mne"]

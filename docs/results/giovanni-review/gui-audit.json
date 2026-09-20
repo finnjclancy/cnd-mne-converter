@@ -1,0 +1,33 @@
+{
+  "mne_version": "1.12.1",
+  "numpy_version": "2.5.2",
+  "dataset": "examples/_scratch/lalor-sample",
+  "source_sha256": {
+    "dataStim.mat": "ab965c692b68f7f692e12c1f426206909d10d4c6dcabd3d60eee8c1022e49a44",
+    "pre_dataSub1.mat": "ffdfa185e39741fd3fabacdb906f78996bb99e3817a66c231cffa1e9a7aaa362"
+  },
+  "trials": 20,
+  "channels": 128,
+  "total_samples_per_channel": 248920,
+  "sampling_frequency_hz": 64.0,
+  "source_unit_declared": null,
+  "gui_unit_input": "uV",
+  "unit_status": "plotting assumption; source CND does not declare a physical unit",
+  "source_coordinate_median_radius": 0.9999990851995816,
+  "coordinate_scale_to_meters": 0.095,
+  "source_to_mne_volts_max_abs_error_all_trials": 0.0,
+  "all_mne_data_finite": true,
+  "display_copy_data_max_abs_error": 0.0,
+  "biosemi_montage_match": "biosemi128",
+  "channel_order_unchanged": true,
+  "max_source_vs_display_direction_error_degrees": 3.7932923861108555e-05,
+  "topomap_sphere_m": [
+    -1.1070419195652515e-17,
+    1.156141344069291e-08,
+    0.040148636337278575,
+    0.12260282364929022
+  ],
+  "max_projected_sensor_radius_m": 0.12138918992752915,
+  "all_sensors_inside_topomap_outline": true,
+  "all_power_spectra_finite": true
+}

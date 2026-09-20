@@ -714,3 +714,15 @@ def test_topomap_layout_uses_real_channels_and_preserves_raw_layout(tmp_path) ->
     assert neural.channel_locations[1]["pos"].tolist() == [2.0, 3.0]
     assert neural.channel_locations_raw is layout
     assert cnd_io._neural_to_mat(neural)["chanlocs"] is layout
+
+
+def test_stimulus_vectors_are_matlab_columns(sample_recording, tmp_path):
+    from scipy.io import loadmat
+
+    paths = write_cnd(sample_recording, tmp_path)
+    stim = loadmat(paths.stimulus, struct_as_record=False, squeeze_me=False)["stim"][
+        0, 0
+    ]
+    for feature in stim.data.flat:
+        assert feature.ndim == 2
+        assert feature.shape[0] > 1

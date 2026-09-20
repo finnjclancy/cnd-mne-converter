@@ -388,12 +388,12 @@ def validate_cnd(
         ):
             if not np.isclose(neural.sfreq, stimulus.sfreq, rtol=0, atol=0):
                 issues.append(
-                    _spec_issue(
-                        strict_spec,
+                    _warning(
                         "sampling_frequency_mismatch",
                         "$",
-                        "CND 1.0 requires neural and stimulus sampling rates to "
-                        f"match; found {neural.sfreq:g} and {stimulus.sfreq:g} Hz",
+                        "Neural and stimulus sampling rates differ; preserve both "
+                        "stored clocks and align/resample during analysis. Found "
+                        f"{neural.sfreq:g} and {stimulus.sfreq:g} Hz",
                     )
                 )
             if duration_tolerance_seconds is None:

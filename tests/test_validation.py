@@ -41,7 +41,7 @@ def test_inconsistent_channel_count_is_an_error(sample_recording) -> None:
     assert any(issue.code == "channel_count_mismatch" for issue in report.errors)
 
 
-def test_sampling_rate_mismatch_has_tolerant_and_strict_modes(
+def test_sampling_rate_mismatch_is_valid_with_an_alignment_warning(
     sample_recording,
 ) -> None:
     stimulus = replace(sample_recording.stimulus, sfreq=20.0)
@@ -53,7 +53,8 @@ def test_sampling_rate_mismatch_has_tolerant_and_strict_modes(
     assert any(
         issue.code == "sampling_frequency_mismatch" for issue in tolerant.warnings
     )
-    assert any(issue.code == "sampling_frequency_mismatch" for issue in strict.errors)
+    assert strict.is_valid
+    assert any(issue.code == "sampling_frequency_mismatch" for issue in strict.warnings)
 
 
 def test_invalid_sampling_rate_returns_report_instead_of_dividing_by_zero(

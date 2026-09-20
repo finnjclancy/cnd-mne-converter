@@ -60,6 +60,53 @@ def test_montage_requires_explicit_transform_and_scale(sample_recording) -> None
     np.testing.assert_allclose(positions["Pz"], [0.0475, 0.0, 0.076])
 
 
+def test_complete_biosemi_montage_preserves_positions_and_transforms_to_head() -> None:
+    template = mne.channels.make_standard_montage("biosemi128", head_size=0.095)
+    native_positions = template.get_positions()["ch_pos"]
+    locations = tuple(
+        {
+            "labels": name,
+            "X": position[1],
+            "Y": -position[0],
+            "Z": position[2],
+        }
+        for name, position in native_positions.items()
+    )
+    neural = CNDNeural(
+        trials=(np.zeros((10, len(locations))),),
+        sfreq=100,
+        device_name="BioSemi",
+        channel_locations=locations,
+        data_unit="uV",
+    )
+
+    raw = to_mne(
+        CNDRecording(neural=neural),
+        montage="eeglab",
+        coordinate_scale_to_meters=1.0,
+    ).raws[0]
+
+    transform = mne.channels.compute_native_head_t(template, on_missing="raise")
+    expected = {
+        name: mne.transforms.apply_trans(transform, position)
+        for name, position in native_positions.items()
+    }
+    actual = raw.get_montage().get_positions()
+    for name in raw.ch_names:
+        np.testing.assert_allclose(actual["ch_pos"][name], expected[name], atol=1e-12)
+    assert actual["coord_frame"] == "head"
+    assert actual["nasion"] is not None
+    assert actual["lpa"] is not None
+    assert actual["rpa"] is not None
+
+    with pytest.raises(CNDValidationError, match="implausible median head radius"):
+        to_mne(
+            CNDRecording(neural=neural),
+            montage="eeglab",
+            coordinate_scale_to_meters=0.1,
+        )
+
+
 def test_mne_to_cnd_preserves_values_and_metadata(sample_recording) -> None:
     mne_recording = to_mne(sample_recording)
     converted_back = from_mne(
@@ -78,6 +125,53 @@ def test_mne_to_cnd_preserves_values_and_metadata(sample_recording) -> None:
         strict=True,
     ):
         np.testing.assert_allclose(actual, expected)
+
+
+def test_mne_to_cnd_exports_auxiliary_channels_as_external(sample_recording) -> None:
+    converted = to_mne(sample_recording)
+    external = tuple(
+        mne.io.RawArray(
+            np.vstack((np.full(raw.n_times, 3e-6), np.full(raw.n_times, -2e-6))),
+            mne.create_info(["VEOG", "HEOG"], raw.info["sfreq"], ["eog", "eog"]),
+            verbose="ERROR",
+        )
+        for raw in converted.raws
+    )
+
+    exported = from_mne(
+        converted.raws,
+        stimulus=sample_recording.stimulus,
+        output_unit="uV",
+        external_raws=external,
+        external_unit="uV",
+        external_description="ERP CORE EOG channels",
+    )
+
+    assert exported.neural is not None
+    assert exported.neural.external_description == "ERP CORE EOG channels"
+    assert exported.neural.external_fields["channelNames"].tolist() == [
+        "VEOG",
+        "HEOG",
+    ]
+    assert exported.neural.external_fields["channelTypes"].tolist() == ["eog", "eog"]
+    np.testing.assert_allclose(exported.neural.external_trials[0][0], [3.0, -2.0])
+    restored_external = to_mne(exported).external_raws(unit="uV")
+    assert restored_external[0].ch_names == ["VEOG", "HEOG"]
+    assert restored_external[0].get_channel_types() == ["eog", "eog"]
+
+
+def test_mne_to_cnd_external_channels_require_explicit_unit(
+    sample_recording,
+) -> None:
+    converted = to_mne(sample_recording)
+    external = mne.io.RawArray(
+        np.zeros((1, converted.raws[0].n_times)),
+        mne.create_info(["VEOG"], converted.raws[0].info["sfreq"], ["eog"]),
+        verbose="ERROR",
+    )
+
+    with pytest.raises(CNDAmbiguousUnitError, match="external_unit"):
+        from_mne(converted.raws[0], external_raws=external)
 
 
 def test_template_round_trip_preserves_cnd_only_metadata(sample_recording) -> None:
@@ -493,3 +587,83 @@ def test_mne_write_preserves_named_participant_files(
     assert paths.neural == destination / "dataParticipant_P001.mat"
     assert paths.stimulus == destination / "dataStim_P001.mat"
     assert read_cnd_mne(destination, subject="P001", neural_unit="uV").raws
+
+
+@pytest.mark.parametrize("different_date", [False, True])
+def test_external_time_origin_must_match(different_date):
+    from datetime import datetime, timezone
+
+    raw = mne.io.RawArray(
+        np.zeros((1, 100)), mne.create_info(["Cz"], 100, "eeg"), verbose=False
+    )
+    external = mne.io.RawArray(
+        np.zeros((1, 100)),
+        mne.create_info(["EOG"], 100, "eog"),
+        first_samp=0 if different_date else 100,
+        verbose=False,
+    )
+    if different_date:
+        external.set_meas_date(datetime(2020, 1, 1, tzinfo=timezone.utc))
+    with pytest.raises(CNDValidationError, match="different time origin"):
+        from_mne(
+            raw,
+            external_raws=external,
+            external_unit="V",
+            on_unsupported_metadata="ignore",
+        )
+
+
+def test_new_external_export_is_matlab_cell(sample_recording, tmp_path):
+    from scipy.io import loadmat
+
+    raw = to_mne(sample_recording).raws[0]
+    ext = mne.io.RawArray(
+        np.zeros((1, raw.n_times)),
+        mne.create_info(["EOG"], raw.info["sfreq"], "eog"),
+        verbose=False,
+    )
+    recording = from_mne(
+        raw, external_raws=ext, external_unit="V", on_unsupported_metadata="ignore"
+    )
+    path = tmp_path / "external.mat"
+    paths = write_cnd(recording, path)
+    eeg = loadmat(paths.neural, struct_as_record=False, squeeze_me=False)["eeg"][0, 0]
+    assert eeg.extChan.dtype == object
+    assert eeg.extChan[0, 0][0, 0].data[0, 0].shape == (raw.n_times, 1)
+
+
+def test_exported_locations_include_eeglab_polar_coordinates():
+    raw = mne.io.RawArray(
+        np.zeros((3, 10)),
+        mne.create_info(["front", "right", "top"], 100, "eeg"),
+        verbose=False,
+    )
+    raw.set_montage(
+        mne.channels.make_dig_montage(
+            ch_pos={"front": [0, 0.1, 0], "right": [0.1, 0, 0], "top": [0, 0, 0.1]},
+            coord_frame="head",
+        )
+    )
+    recording = from_mne(raw, on_unsupported_metadata="ignore")
+    locations = recording.neural.channel_locations
+    assert [p["theta"] for p in locations] == [0, 90, 0]
+    assert [p["radius"] for p in locations] == [0.5, 0.5, 0]
+    np.testing.assert_allclose([p["sph_radius"] for p in locations], 0.1)
+
+
+def test_external_matlab_cell_survives_mne_edit_and_write(sample_recording, tmp_path):
+    from scipy.io import loadmat
+
+    from cnd_mne import read_cnd
+
+    initial = to_mne(sample_recording).to_cnd()
+    first = write_cnd(initial, tmp_path / "first")
+    loaded = read_cnd(first.neural, stimulus_path=first.stimulus)
+    converted = to_mne(loaded)
+    converted.raws[0]._data += 1e-6
+    second = write_cnd(converted.to_cnd(cnsp_external_cells=True), tmp_path / "second")
+    eeg = loadmat(second.neural, struct_as_record=False)["eeg"][0, 0]
+    assert eeg.extChan.dtype == object
+    np.testing.assert_allclose(
+        eeg.extChan[0, 0][0, 0].data[0, 0], sample_recording.neural.external_trials[0]
+    )

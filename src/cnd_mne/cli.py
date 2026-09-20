@@ -16,6 +16,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="cnd-mne")
     commands = parser.add_subparsers(dest="command", required=True)
 
+    commands.add_parser("gui", help="open CND files in a small MNE desktop GUI")
+
     inspect_parser = commands.add_parser("inspect", help="inspect and validate CND")
     inspect_parser.add_argument(
         "path", help="CND directory or subject/stimulus .mat file"
@@ -73,6 +75,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
 
     args = parser.parse_args(argv)
+    if args.command == "gui":
+        from .gui import launch_gui
+
+        launch_gui()
+        return 0
     if args.command == "inspect":
         recording = read_cnd(
             args.path,

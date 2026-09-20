@@ -27,6 +27,27 @@ uv run cnd-mne inspect tests/data/minimal-cnd --subject 1
 
 You should see JSON for two trials, four EEG channels, and two stimulus tracks (`Speech Envelope`, `Word Onsets`). `inspect` only reads the MATLAB; it does not need a unit.
 
+### Desktop import button
+
+Launch the companion CND-to-MNE window:
+
+```bash
+uv sync --extra gui
+uv run cnd-mne gui
+```
+
+Choose a CND MATLAB file, provide the neural unit when the file does not declare
+one, and click **Open CND**. The window can move between trials and open the
+selected trial in MNE's interactive data viewer, sensor-layout plot, or power
+spectrum. Applying EEGLAB channel coordinates remains explicit because the
+stored coordinate scale cannot safely be guessed.
+
+This is a small GUI around the package API. Direct inclusion in MNE-Python or a
+third-party MNE application such as MNELAB would be a separate upstream change.
+
+See the [GUI guide](docs/gui.md) for the fields, buttons, real-data example,
+plot interpretation, and coordinate limitations.
+
 ## Usage
 
 The bundled example already declares `uV`:
@@ -64,6 +85,20 @@ eog = rec.external_raws(unit="uV", channel_types="eog")
 continuous = rec.concatenate()  # opt-in; fake joins are marked
 ```
 
+For MNE-to-CND conversion, keep reviewed auxiliary channels separate from the
+EEG matrix. Their names and MNE channel types are stored with `extChan` and are
+restored automatically:
+
+```python
+recording = from_mne(
+    eeg_raw,
+    stimulus=stimulus,
+    external_raws=eog_raw,
+    external_unit="V",
+    external_description="EOG channels",
+)
+```
+
 Write back through the original template so envelopes and trial order survive:
 
 ```python
@@ -72,6 +107,11 @@ paths = rec.write_cnd(
     "converted/dataCND", subject=1, output_unit="uV", mat_version="7.3"
 )
 ```
+
+For CNSP scripts that access `eeg.extChan{1}`, pass
+`cnsp_external_cells=True` to `rec.write_cnd(...)` when re-exporting a legacy
+single-group external-channel struct. The default preserves the template layout;
+new `external_raws` exports already use cells.
 
 Existing files are left alone unless you pass `overwrite=True`. MNE cannot invent speech envelopes. For data that never was CND, `from_mne(...)` builds a new recording and tells you what it could not represent.
 
@@ -109,3 +149,17 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy src/cnd_mne
 ```
+
+### Validation following Giovanni's review
+
+New MNE external-channel exports use MATLAB cell groups compatible with CNSP's
+`eeg.extChan{1}` access. One-dimensional stimulus features are serialized as
+`time × 1` columns, rather than MATLAB row vectors.
+
+A labelled BioSemi manufacturer comparison and real ERP CORE MNE filtering/PSD
+figures are in [the review results](docs/results/giovanni-review/).
+Reproduce from this repository with `uv run --with xlrd python
+examples/validate_giovanni.py --root ..`, using the real fixtures and BioSemi
+coordinate workbook described in the companion project's
+`docs/reports/GIOVANNI-FEEDBACK.md`. The reference head radius is a display
+convention, not a measured physical scale.
