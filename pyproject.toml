@@ -56,6 +56,7 @@ dev = [
 gui = [
     "mne-qt-browser>=0.6",
     "pyside6>=6.7",
+    "qtpy>=2.4",
 ]
 
 [tool.hatch.build.targets.wheel]

@@ -1,0 +1,26 @@
+{
+  "packages": {
+    "mne": "1.12.1",
+    "mne-qt-browser": "0.7.5",
+    "PySide6": "6.11.2",
+    "qtpy": "2.4.3"
+  },
+  "source_sha256": {
+    "dataStim.mat": "ab965c692b68f7f692e12c1f426206909d10d4c6dcabd3d60eee8c1022e49a44",
+    "pre_dataSub1.mat": "ffdfa185e39741fd3fabacdb906f78996bb99e3817a66c231cffa1e9a7aaa362"
+  },
+  "gui_source_sha256": "426224b918bdcc72a5302b929808c41b4fe24b64f5c5fc0ad5b3f29fb1bc7097",
+  "unit_argument": "uV",
+  "source_declared_unit": null,
+  "unit_note": "An explicit argument does not establish physical calibration.",
+  "qt_platform": "offscreen",
+  "native_mne_viewer_with_import_button": true,
+  "duplicate_installation_reuses_button": true,
+  "dialog_opened_by_toolbar_action": true,
+  "new_viewer_opened_after_conversion": true,
+  "original_viewer_data_unchanged": true,
+  "imported_trial_data_exact_match": true,
+  "channels": 128,
+  "trials": 20,
+  "scope": "Opt-in Qt toolbar prototype; no MNE source patches or upstream integration."
+}

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from .mne import MNECNDRecording, MontagePolicy, read_cnd_mne
 
@@ -11,14 +11,17 @@ from .mne import MNECNDRecording, MontagePolicy, read_cnd_mne
 class CNDImporterApp:
     """A focused CND import window backed by the public converter API."""
 
-    def __init__(self) -> None:
-        from PySide6 import QtWidgets
+    def __init__(self, *, parent: Any = None, open_on_load: bool = False) -> None:
+        from qtpy import QtWidgets
 
         self._qt = QtWidgets
         self.recording: MNECNDRecording | None = None
         self.trial_index = 0
+        self.open_on_load = open_on_load
 
-        self.window = QtWidgets.QWidget()
+        self.window = (
+            QtWidgets.QDialog(parent) if parent is not None else QtWidgets.QWidget()
+        )
         self.window.setWindowTitle("CND to MNE")
         self.window.setMinimumSize(680, 350)
         layout = QtWidgets.QGridLayout(self.window)
@@ -93,6 +96,8 @@ class CNDImporterApp:
     def show(self) -> None:
         """Show the import window."""
         self.window.show()
+        self.window.raise_()
+        self.window.activateWindow()
 
     def _browse(self) -> None:
         path, _ = self._qt.QFileDialog.getOpenFileName(
@@ -148,6 +153,13 @@ class CNDImporterApp:
         if warning:
             self._qt.QMessageBox.warning(self.window, "Check the neural unit", warning)
         self._update_controls()
+        if self.open_on_load:
+            try:
+                self._open_browser(self._selected_raw())
+            except Exception as error:
+                self._show_error(str(error))
+            else:
+                self.window.hide()
 
     def _amplitude_warning(self) -> str | None:
         """Flag an implausibly large EEG display without guessing a replacement unit."""
@@ -179,14 +191,34 @@ class CNDImporterApp:
         self._update_controls()
 
     def _plot_raw(self) -> None:
-        self._run_plot(
-            lambda raw: raw.plot(
+        self._run_plot(self._open_browser)
+
+    def _open_browser(self, raw: Any) -> Any:
+        """Open an ordinary MNE Qt viewer with our opt-in import toolbar."""
+        import mne
+
+        with mne.viz.use_browser_backend("qt"):
+            browser = raw.plot(
                 block=False,
                 duration=min(10.0, raw.times[-1]),
                 n_channels=min(20, len(raw.ch_names)),
                 scalings="auto",
             )
-        )
+        importer = add_cnd_import_button(browser)
+        importer.recording = self.recording
+        importer.trial_index = self.trial_index
+        importer.path.setText(self.path.text())
+        importer.subject.setText(self.subject.text())
+        importer.neural_unit.setCurrentText(self.neural_unit.currentText())
+        importer.use_montage.setChecked(self.use_montage.isChecked())
+        importer.coordinate_scale.setText(self.coordinate_scale.text())
+        importer.status.setText(self.status.text())
+        importer._update_controls()
+        # Keep the original CND metadata reachable for later template write-back.
+        browser.cnd_recording = self.recording
+        browser.cnd_trial_index = self.trial_index
+        self.last_browser = browser
+        return browser
 
     def _plot_sensors(self) -> None:
         self._run_plot(self._plot_sensor_layout)
@@ -287,10 +319,41 @@ class CNDImporterApp:
         )
 
 
+def add_cnd_import_button(browser: Any) -> CNDImporterApp:
+    """Add an Open CND toolbar action to an existing MNE Qt browser.
+
+    Pass the figure returned by ``raw.plot()`` with the Qt browser backend.
+    Only this window is extended; no MNE functions or installed files are
+    patched. Importing opens a new viewer, preserving the existing recording.
+    Returns the import-dialog controller. Repeated calls reuse the same button.
+    This is a prototype using Qt's public window API, not an MNE plugin API.
+    """
+    from qtpy import QtWidgets
+
+    if not isinstance(browser, QtWidgets.QMainWindow):
+        raise TypeError(
+            "Open CND requires MNE's Qt browser. Use "
+            "mne.viz.set_browser_backend('qt') before raw.plot()."
+        )
+    existing = getattr(browser, "_cnd_import_controller", None)
+    if existing is not None:
+        return existing
+    importer = CNDImporterApp(parent=browser, open_on_load=True)
+    toolbar = QtWidgets.QToolBar("CND import", browser)
+    toolbar.setObjectName("cndImportToolbar")
+    action = toolbar.addAction("Open CND…")
+    action.setObjectName("openCNDAction")
+    action.setToolTip("Import a CND MATLAB recording into a new MNE viewer")
+    action.triggered.connect(importer.show)
+    browser.addToolBar(toolbar)
+    cast(Any, browser)._cnd_import_controller = importer
+    return importer
+
+
 def launch_gui() -> None:
     """Launch the CND-to-MNE desktop import window."""
     try:
-        from PySide6 import QtWidgets
+        from qtpy import QtWidgets
     except ImportError as error:
         raise RuntimeError(
             "The CND GUI requires the optional GUI dependencies. "

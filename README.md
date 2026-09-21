@@ -42,8 +42,14 @@ selected trial in MNE's interactive data viewer, sensor-layout plot, or power
 spectrum. Applying EEGLAB channel coordinates remains explicit because the
 stored coordinate scale cannot safely be guessed.
 
-This is a small GUI around the package API. Direct inclusion in MNE-Python or a
-third-party MNE application such as MNELAB would be a separate upstream change.
+The MNE Qt viewer opened from this window also includes an **Open CND…** toolbar
+button. The opt-in `cnd_mne.gui.add_cnd_import_button(browser)` extension can add
+it to an existing Qt viewer. A direct-viewer demonstration is available with
+`uv run --extra gui python examples/mne_import_button.py`.
+
+The toolbar is a prototype supplied by this package using Qt's window API;
+it does not patch MNE or add the button globally. Direct inclusion in MNE-Python
+or a third-party MNE application such as MNELAB remains a separate upstream change.
 
 See the [GUI guide](docs/gui.md) for the fields, buttons, real-data example,
 plot interpretation, and coordinate limitations.
